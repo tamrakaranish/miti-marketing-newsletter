@@ -1,1 +1,63 @@
+name: Publish Newsletter
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - "newsletter/*.md"
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Find latest newsletter file
+        id: find
+        run: |
+          LATEST=$(ls -1 newsletter/*.md | tail -n 1)
+          echo "file=$LATEST" >> $GITHUB_OUTPUT
+
+      - name: Post preview to Slack
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+          SLACK_CHANNEL: "#ai-newsletter"
+        run: |
+          TEXT=$(sed '1,5!d' "${{ steps.find.outputs.file }}")   # first ~5 lines
+          curl -X POST https://slack.com/api/chat.postMessage \
+            -H "Authorization: Bearer $SLACK_BOT_TOKEN" \
+            -H "Content-type: application/json" \
+            --data "{\"channel\":\"$SLACK_CHANNEL\",\"text\":\"New issue published:\n$(echo "$TEXT" | sed 's/\"/\\"/g')\n\nFull issue archived in Confluence.\",\"unfurl_links\":false}"
+      # Optional: schedule the message instead of immediate post:
+      # chat.scheduleMessage is also available if you want a timed send.
+      # https://api.slack.com/methods/chat.scheduleMessage
+
+      - name: Update Confluence archive
+        env:
+          CF_BASE: ${{ secrets.CONFLUENCE_BASE_URL }}
+          CF_USER: ${{ secrets.CONFLUENCE_USER }}
+          CF_TOKEN: ${{ secrets.CONFLUENCE_API_TOKEN }}
+          CF_PAGE_ID: ${{ secrets.CONFLUENCE_PAGE_ID }}
+        run: |
+          BODY=$(python - <<'PY'
+import sys, json
+path = "${{ steps.find.outputs.file }}"
+with open(path) as f:
+  md = f.read()
+# Minimal convert: wrap Markdown in a code block or use your renderer.
+content = "<pre>" + md.replace("&","&amp;").replace("<","&lt;").replace(">","&gt;") + "</pre>"
+print(json.dumps({"body": content}))
+PY
+)
+          # Fetch current page version
+          CURR=$(curl -s -u "$CF_USER:$CF_TOKEN" "$CF_BASE/wiki/api/v2/pages/${CF_PAGE_ID}")
+          VER=$(echo "$CURR" | jq -r '.version.number') || VER=1
+          NEW=$((VER+1))
+          TITLE=$(date -u +'%Y-%m-%d')": MitiMind"
+          curl -s -u "$CF_USER:$CF_TOKEN" -X PUT "$CF_BASE/wiki/api/v2/pages/${CF_PAGE_ID}" \
+            -H "Content-Type: application/json" \
+            --data "{\"version\":{\"number\":$NEW},\"title\":\"$TITLE\",\"body\":{\"storage\":{\"value\":$(echo $BODY | jq -aRs .),\"representation\":\"storage\"}}}"
 
