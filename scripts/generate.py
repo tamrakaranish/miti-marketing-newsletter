@@ -1,101 +1,231 @@
-import os, re, json, datetime, textwrap, hashlib
-import feedparser, requests
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Generate a draft AI newsletter markdown file from curated RSS sources.
 
-OUTDIR = "newsletter"
-SOURCES = "sources.yml"
-DATE = datetime.date.today().isoformat()
-OUTFILE = f"{OUTDIR}/{DATE}.md"
+Outputs: newsletter/<YYYY-MM-DD>.md
+Deps: feedparser, pyyaml, requests
+Env:  OPENAI_API_KEY   (required)
+"""
 
-def clean(text): return re.sub(r"\s+", " ", text or "").strip()
+import os
+import re
+import json
+import hashlib
+import datetime as dt
+from pathlib import Path
+from textwrap import dedent
 
-def fetch_feeds():
-    import yaml
-    with open(SOURCES) as f:
-        cfg = yaml.safe_load(f)
+import feedparser          # pip install feedparser
+import yaml                # pip install pyyaml
+import requests            # pip install requests
+
+# ----------------------------
+# Config
+# ----------------------------
+ROOT = Path(__file__).resolve().parent.parent
+SOURCES_YML = ROOT / "sources.yml"
+OUTDIR = ROOT / "newsletter"
+DATE = dt.date.today().isoformat()
+OUTFILE = OUTDIR / f"{DATE}.md"
+
+# Model & API endpoint (adjust if your org uses a different model)
+OPENAI_API_URL = "https://api.openai.com/v1/chat/completions"
+OPENAI_MODEL = "gpt-4o-mini"   # keep in sync with your org policy
+
+# Hard rules for output quality
+MAX_WORDS = 400        # hard ceiling to keep it concise
+REQUIRED_MIN_LINKS = 3 # require at least N URLs in the draft
+
+
+# ----------------------------
+# Helpers
+# ----------------------------
+def die(msg: str, code: int = 1):
+    print(f"[ERROR] {msg}")
+    raise SystemExit(code)
+
+
+def clean(s: str) -> str:
+    return re.sub(r"\s+", " ", (s or "").strip())
+
+
+def sha_key(*parts: str) -> str:
+    h = hashlib.sha256()
+    for p in parts:
+        h.update((p or "").encode("utf-8"))
+    return h.hexdigest()[:16]
+
+
+def load_sources(yml_path: Path):
+    if not yml_path.exists():
+        die(f"Missing sources.yml at {yml_path}.")
+    with yml_path.open("r", encoding="utf-8") as f:
+        data = yaml.safe_load(f)
+    feeds = data.get("feeds") or []
+    if not feeds:
+        die("sources.yml has no 'feeds' entries.")
+    return feeds
+
+
+def fetch_items(feeds):
     items = []
-    for feed in cfg["feeds"]:
-        d = feedparser.parse(feed["url"])
-        for e in d.entries:
+    for feed in feeds:
+        url = feed.get("url")
+        name = feed.get("name") or url
+        if not url:
+            continue
+        parsed = feedparser.parse(url)
+        for e in parsed.entries:
             items.append({
-                "source": feed["name"],
+                "source": name,
                 "title": clean(getattr(e, "title", "")),
-                "link": getattr(e, "link", ""),
+                "link": getattr(e, "link", "") or "",
                 "summary": clean(getattr(e, "summary", "") or getattr(e, "description", "")),
-                "published": getattr(e, "published", "")
+                "published": getattr(e, "published", "") or ""
             })
-    return dedupe(items)
-
-def dedupe(items):
-    seen = set(); out = []
+    # De-duplicate by (title, link)
+    seen, unique = set(), []
     for it in items:
-        key = hashlib.sha256((it["title"] + it["link"]).encode()).hexdigest()[:16]
-        if key not in seen:
-            seen.add(key); out.append(it)
-    return out
+        k = sha_key(it["title"], it["link"])
+        if k in seen:
+            continue
+        seen.add(k)
+        unique.append(it)
+    return unique
 
-def openai_summarize(selected):
-    # Compose the system+user prompt
-    system = (
-      "You are producing a short internal AI newsletter for a trade finance SaaS company. "
-      "Keep factual, cite the source links inline, and avoid speculation."
-    )
-    user = {
-      "date": DATE,
-      "items": selected,
-      "instructions": textwrap.dedent("""
-        Write under 350 words with sections:
-        1) AI in Trade Finance (1 item) + 'What this means for us'
-        2) Tip of the Week
-        3) Internal Spotlight (if none provided, suggest a small experiment)
-        4) Quick Hits (3 bullets)
-        5) CTA for pilots/polls
 
-        Rules:
-        - Include the source link next to each claim (e.g., [Source](URL)).
-        - If uncertain, say so or exclude.
-        - No confidential info. No personal data.
-      """)
-    }
-    # Call the OpenAI API (simple completion)
-    import json, urllib.request
-    api_key = os.environ["OPENAI_API_KEY"]
-    payload = {
-      "model": "gpt-4o-mini",  # or your preferred current model
-      "messages": [
-        {"role":"system","content":system},
-        {"role":"user","content":json.dumps(user)}
-      ],
-      "temperature": 0.2
-    }
-    req = urllib.request.Request(
-      "https://api.openai.com/v1/chat/completions",
-      data=json.dumps(payload).encode(),
-      headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
-    )
-    with urllib.request.urlopen(req) as resp:
-      data = json.load(resp)
-    return data["choices"][0]["message"]["content"]
-
-def rank(items):
-    # Minimal heuristic: prefer titles with "AI", "model", "policy", "fintech", "trade"
-    KEYS = ["ai","model","fintech","trade","compliance","regulation","customer"]
+def rank_items(items, limit=12):
+    # Super-simple heuristic; tune for your needs
+    KEYS = ("ai", "model", "fintech", "trade", "compliance", "regulation", "customer", "b2b", "saas")
     scored = []
     for it in items:
-        score = sum(k in it["title"].lower() + " " + it["summary"].lower() for k in KEYS)
+        text = (it["title"] + " " + it["summary"]).lower()
+        score = sum(k in text for k in KEYS)
+        # prefer items with a link
+        if it["link"]:
+            score += 1
         scored.append((score, it))
     scored.sort(key=lambda x: x[0], reverse=True)
-    return [it for _, it in scored[:12]]  # keep top 12 for LLM selection
+    return [it for _, it in scored[:limit]]
 
-def main():
-    items = fetch_feeds()
-    top = rank(items)
-    md = openai_summarize(top)
-    os.makedirs(OUTDIR, exist_ok=True)
-    with open(OUTFILE, "w") as f:
+
+def require_api_key() -> str:
+    """Fail fast with a clear message if the key is missing."""
+    api_key = os.environ.get("OPENAI_API_KEY")
+    if not api_key:
+        raise RuntimeError(
+            "OPENAI_API_KEY is not set. Add it in GitHub → Repo → Settings → Secrets → Actions."
+        )
+    return api_key
+
+
+def summarize_with_openai(selected_items):
+    api_key = require_api_key()
+
+    system_msg = (
+        "You produce a short internal AI newsletter for a trade-finance SaaS company. "
+        "Be factual. Include source links next to claims. Avoid speculation and personal data."
+    )
+
+    user_payload = {
+        "date": DATE,
+        "instructions": dedent("""
+            Write under 350 words with sections:
+            1) AI in Trade Finance (1 item) + 'What this means for us'
+            2) Tip of the Week
+            3) Internal Spotlight (if none provided, suggest a small, safe internal experiment)
+            4) Quick Hits (3 bullets)
+            5) CTA for pilots/polls
+
+            Rules:
+            - Include the source link next to each claim (e.g., [Source](URL)).
+            - If you are uncertain about a claim, exclude it or mark it clearly.
+            - No confidential info. No personal data.
+        """).strip(),
+        "items": selected_items
+    }
+
+    body = {
+        "model": OPENAI_MODEL,
+        "temperature": 0.2,
+        "messages": [
+            {"role": "system", "content": system_msg},
+            {"role": "user", "content": json.dumps(user_payload, ensure_ascii=False)}
+        ]
+    }
+
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json",
+    }
+
+    resp = requests.post(OPENAI_API_URL, headers=headers, data=json.dumps(body), timeout=60)
+    if resp.status_code >= 300:
+        die(f"OpenAI API error {resp.status_code}: {resp.text[:500]}")
+    data = resp.json()
+    try:
+        content = data["choices"][0]["message"]["content"]
+    except Exception:
+        die(f"Unexpected OpenAI response shape: {json.dumps(data)[:800]}")
+    return content.strip()
+
+
+def enforce_quality(md_text: str):
+    # Word cap
+    words = re.findall(r"\b\w+\b", md_text)
+    if len(words) > MAX_WORDS:
+        die(f"Draft too long ({len(words)} words). Keep under {MAX_WORDS} words.")
+
+    # Require at least N URLs (rudimentary but effective)
+    links = re.findall(r"https?://\S+", md_text)
+    if len(links) < REQUIRED_MIN_LINKS:
+        die(f"Draft contains too few links ({len(links)}). Require at least {REQUIRED_MIN_LINKS} source URLs.")
+
+    # Basic sanity: must have the core sections
+    required_headers = ("AI in Trade Finance", "Tip of the Week", "Quick Hits")
+    for h in required_headers:
+        if h.lower() not in md_text.lower():
+            die(f"Draft missing required section heading: '{h}'.")
+
+
+def write_output(md_text: str):
+    OUTDIR.mkdir(parents=True, exist_ok=True)
+    with OUTFILE.open("w", encoding="utf-8") as f:
         f.write(f"# MitiMind – {DATE}\n\n")
-        f.write(md)
+        f.write(md_text)
         f.write("\n\n— Auto‑draft by AI agent, please review before publishing.\n")
-    print("Draft written to", OUTFILE)
+    print(f"[OK] Draft written to {OUTFILE}")
+
+
+# ----------------------------
+# Main
+# ----------------------------
+def main():
+    print("[i] Loading sources…")
+    feeds = load_sources(SOURCES_YML)
+
+    print("[i] Fetching RSS items…")
+    items = fetch_items(feeds)
+    if not items:
+        die("No items fetched from RSS sources. Check sources.yml or network access.")
+
+    print(f"[i] Ranking {len(items)} items…")
+    top = rank_items(items, limit=12)
+
+    print("[i] Calling OpenAI to compose newsletter…")
+    draft = summarize_with_openai(top)
+
+    print("[i] Enforcing quality gates…")
+    enforce_quality(draft)
+
+    print("[i] Writing output…")
+    write_output(draft)
+
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except RuntimeError as e:
+        # Explicit for missing secrets etc.
+        die(str(e))
