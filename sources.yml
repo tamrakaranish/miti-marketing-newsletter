@@ -1,1 +1,9 @@
-
+feeds:
+  - name: Finextra
+    url: https://www.finextra.com/rss/headlines.aspx
+  - name: Trade Finance Global
+    url: https://www.tradefinanceglobal.com/feed/
+  - name: The Batch (deeplearning.ai)
+    url: https://www.deeplearning.ai/the-batch/feed/
+  - name: Benedict Evans
+    url: https://www.ben-evans.com/feed
