@@ -42,22 +42,23 @@ jobs:
 
       # IMPORTANT: use Actions expressions, not shell, for the branch name
       - name: Create PR
-        uses: peter-evans/create-pull-request@v6
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          branch: newsletter/draft-${{ github.run_id }}      # safe, unique branch
-          delete-branch: true
-          title: "AI Newsletter draft – ${{ github.run_id }} [ai-agent]"
-          body: |
-            Auto-generated draft for review.
-            - Source file: newsletter/<date>.md
-            - Please verify sources, claims, and CTA.
-          commit-message: "chore(newsletter): add draft issue"
-          labels: |
-            newsletter
-            ai
-            needs-review
-          add-paths: |
-            newsletter/**
-            sources.yml
-            scripts/**
+      uses: peter-evans/create-pull-request@v6
+      with:
+        token: ${{ secrets.PR_TOKEN }}     # <— use PAT
+        branch: newsletter/draft-${{ github.run_id }}
+        delete-branch: true
+        title: "AI Newsletter draft – ${{ github.run_id }} [ai-agent]"
+        body: |
+          Auto-generated draft for review.
+          Source: newsletter/<date>.md
+          Please verify sources, claims, and CTA.
+        commit-message: "chore(newsletter): add draft issue"
+        labels: |
+          newsletter
+          ai
+          needs-review
+        add-paths: |
+          newsletter/**
+          sources.yml
+          scripts/**
+
