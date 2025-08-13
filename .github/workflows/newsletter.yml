@@ -1,9 +1,8 @@
-
 name: Generate AI Newsletter (Draft PR)
 
 on:
   schedule:
-    - cron: "0 7 * * 2"   # Tuesdays 07:00 UTC; adjust as needed
+    - cron: "0 7 * * 2"         # Tuesdays 07:00 UTC
   workflow_dispatch:
 
 permissions:
@@ -14,7 +13,8 @@ jobs:
   build-draft:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -40,11 +40,24 @@ jobs:
         run: |
           python scripts/generate.py
 
+      # IMPORTANT: use Actions expressions, not shell, for the branch name
       - name: Create PR
         uses: peter-evans/create-pull-request@v6
         with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          branch: newsletter/draft-${{ github.run_id }}      # safe, unique branch
+          delete-branch: true
+          title: "AI Newsletter draft – ${{ github.run_id }} [ai-agent]"
+          body: |
+            Auto-generated draft for review.
+            - Source file: newsletter/<date>.md
+            - Please verify sources, claims, and CTA.
           commit-message: "chore(newsletter): add draft issue"
-          title: "AI Newsletter draft – $(date -u +'%Y-%m-%d') [ai-agent]"
-          body: "Auto-generated draft. Please review sources, claims and CTAs."
-          branch: "newsletter/draft-$(date -u +'%Y-%m-%d')"
-          labels: "newsletter,ai,needs-review"
+          labels: |
+            newsletter
+            ai
+            needs-review
+          add-paths: |
+            newsletter/**
+            sources.yml
+            scripts/**
