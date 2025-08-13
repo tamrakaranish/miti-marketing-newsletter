@@ -41,7 +41,7 @@ jobs:
           python scripts/generate.py
 
       # IMPORTANT: use Actions expressions, not shell, for the branch name
-        - name: Create PR
+      - name: Create PR
         uses: peter-evans/create-pull-request@v6
         with:
           token: ${{ secrets.PR_TOKEN }}     # <— use PAT
