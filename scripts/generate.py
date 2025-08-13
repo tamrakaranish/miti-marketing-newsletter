@@ -96,16 +96,49 @@ def fetch_items(feeds):
 
 
 def rank_items(items, limit=12):
-    # Super-simple heuristic; tune for your needs
-    KEYS = ("ai", "model", "fintech", "trade", "compliance", "regulation", "customer", "b2b", "saas")
+    # Enhanced scoring for PLD transformation relevance
+    KEYS = {
+        # High priority - core AI/tech terms
+        ("ai", "artificial intelligence", "machine learning", "llm", "gpt", "automation"): 3,
+        # Medium priority - business transformation
+        ("product-led", "pld", "transformation", "agile", "devops", "innovation"): 2,
+        # Standard priority - industry terms  
+        ("fintech", "trade", "compliance", "regulation", "customer", "b2b", "saas"): 1,
+        # Bonus terms - specific to company context
+        ("cross-functional", "autonomous", "data-driven", "transparency"): 2
+    }
+    
     scored = []
     for it in items:
         text = (it["title"] + " " + it["summary"]).lower()
-        score = sum(k in text for k in KEYS)
-        # prefer items with a link
+        score = 0
+        
+        # Calculate weighted score based on keyword categories
+        for keywords, weight in KEYS.items():
+            for keyword in keywords:
+                if keyword in text:
+                    score += weight
+        
+        # Prefer items with links
         if it["link"]:
             score += 1
+            
+        # Boost recent items (basic recency scoring)
+        if it.get("published"):
+            try:
+                # Simple boost for items from last 7 days
+                from dateutil import parser
+                pub_date = parser.parse(it["published"])
+                days_old = (dt.datetime.now(pub_date.tzinfo) - pub_date).days
+                if days_old <= 7:
+                    score += 2
+                elif days_old <= 30:
+                    score += 1
+            except:
+                pass  # Skip if date parsing fails
+                
         scored.append((score, it))
+    
     scored.sort(key=lambda x: x[0], reverse=True)
     return [it for _, it in scored[:limit]]
 
@@ -124,8 +157,11 @@ def summarize_with_openai(selected_items):
     api_key = require_api_key()
 
     system_msg = (
-        "You produce a short internal AI newsletter for a trade-finance SaaS company. "
-        "Be factual. Include source links next to claims. Avoid speculation and personal data."
+        "You produce a short internal AI newsletter for Mitigram, a trade-finance SaaS company transitioning from "
+        "Feature Factory to Product-Led Development (PLD). Your audience includes business, tech, product, and design teams. "
+        "Focus on AI developments that could impact autonomous team decision-making, cross-functional collaboration, "
+        "and data-driven product development. Be factual, include source links, avoid speculation and personal data. "
+        "Connect AI trends to business value and transformation opportunities."
     )
 
     user_payload = {
