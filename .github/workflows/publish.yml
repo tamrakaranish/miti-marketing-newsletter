@@ -21,32 +21,39 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Locate latest newsletter files
+      - name: Locate newsletter files from this push (prefer exact diff)
         id: find
         shell: bash
         run: |
           set -euo pipefail
-
-          echo "== repo root =="
-          ls -la
-          echo "== newsletter dir =="
-          ls -la newsletter || true
-
-          MD="$(ls -1t newsletter/*.md | head -n 1 || true)"
-          if [ -z "${MD:-}" ]; then
-            echo "No newsletter/*.md found"; exit 1
-          fi
-          SLACK="${MD%.md}_slack.txt"
-
-          echo "Found MD: $MD"
-          if [ -f "$SLACK" ]; then
-            echo "Found Slack: $SLACK"
+      
+          echo "== Changed files in this push =="
+          git fetch --depth=2 origin "${{ github.ref }}"
+          CHANGED="$(git diff --name-only "${{ github.event.before }}" "${{ github.sha }}")"
+          echo "$CHANGED"
+      
+          # Pick date-named newsletters touched by this push
+          MAPFILE=()
+          while IFS= read -r f; do
+            [[ "$f" =~ ^newsletter/[0-9]{4}-[0-9]{2}-[0-9]{2}\.md$ ]] && MAPFILE+=("$f")
+          done < <(printf '%s\n' "$CHANGED")
+      
+          if [ "${#MAPFILE[@]}" -eq 0 ]; then
+            echo "No date-named newsletter in this push, falling back to latest by filename…"
+            MD="$(ls -1 newsletter/*.md 2>/dev/null | grep -E '/[0-9]{4}-[0-9]{2}-[0-9]{2}\.md$' | sort | tail -n 1 || true)"
+            [ -z "${MD:-}" ] && { echo "No newsletter files found"; exit 1; }
           else
-            echo "Slack file not present (will generate in next step): $SLACK"
+            # If multiple were touched, take the newest by filename
+            MD="$(printf '%s\n' "${MAPFILE[@]}" | sort | tail -n 1)"
           fi
-
+      
+          SLACK="${MD%.md}_slack.txt"
+          echo "Selected MD: $MD"
+          [ -f "$SLACK" ] && echo "Matching Slack exists: $SLACK" || echo "Slack will be generated: $SLACK"
+      
           echo "file_md=$MD" >> "$GITHUB_OUTPUT"
           echo "file_slack=$SLACK" >> "$GITHUB_OUTPUT"
+
 
       - name: Ensure Slack text exists (fallback generator)
         shell: bash
