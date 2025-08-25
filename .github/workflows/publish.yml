@@ -1,250 +1,110 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-  """
-  Generate a draft AI newsletter markdown file from curated RSS sources.
-  Also generate a Slack-friendly text version.
-  
-  Outputs:
-    newsletter/<YYYY-MM-DD>.md
-    newsletter/<YYYY-MM-DD>_slack.txt
-  
-  Deps: feedparser, pyyaml, requests
-  Env:  OPENAI_API_KEY   (required)
-  """
-  
-  import os
-  import re
-  import json
-  import hashlib
-  import datetime as dt
-  from pathlib import Path
-  from textwrap import dedent
-  
-  import feedparser          # pip install feedparser
-  import yaml                # pip install pyyaml
-  import requests            # pip install requests
-  
-  # ----------------------------
-  # Config
-  # ----------------------------
-  ROOT = Path(__file__).resolve().parent.parent
-  SOURCES_YML = ROOT / "sources.yml"
-  OUTDIR = ROOT / "newsletter"
-  DATE = dt.date.today().isoformat()
-  OUT_MD = OUTDIR / f"{DATE}.md"
-  OUT_SLACK = OUTDIR / f"{DATE}_slack.txt"
-  
-  OPENAI_API_URL = "https://api.openai.com/v1/chat/completions"
-  OPENAI_MODEL = "gpt-4o-mini"   # align with org policy
-  
-  MAX_WORDS = 400
-  REQUIRED_MIN_LINKS = 3
-  
-  # ----------------------------
-  # Helpers
-  # ----------------------------
-  def die(msg: str, code: int = 1):
-      print(f"[ERROR] {msg}")
-      raise SystemExit(code)
-  
-  def clean(s: str) -> str:
-      return re.sub(r"\s+", " ", (s or "").strip())
-  
-  def sha_key(*parts: str) -> str:
-      h = hashlib.sha256()
-      for p in parts:
-          h.update((p or "").encode("utf-8"))
-      return h.hexdigest()[:16]
-  
-  def load_sources(yml_path: Path):
-      if not yml_path.exists():
-          die(f"Missing sources.yml at {yml_path}.")
-      with yml_path.open("r", encoding="utf-8") as f:
-          data = yaml.safe_load(f)
-      feeds = data.get("feeds") or []
-      if not feeds:
-          die("sources.yml has no 'feeds' entries.")
-      return feeds
-  
-  def fetch_items(feeds):
-      items = []
-      for feed in feeds:
-          url = feed.get("url")
-          name = feed.get("name") or url
-          if not url:
-              continue
-          parsed = feedparser.parse(url)
-          for e in parsed.entries:
-              items.append({
-                  "source": name,
-                  "title": clean(getattr(e, "title", "")),
-                  "link": getattr(e, "link", "") or "",
-                  "summary": clean(getattr(e, "summary", "") or getattr(e, "description", "")),
-                  "published": getattr(e, "published", "") or ""
-              })
-      # De-duplicate by (title, link)
-      seen, unique = set(), []
-      for it in items:
-          k = sha_key(it["title"], it["link"])
-          if k in seen:
-              continue
-          seen.add(k)
-          unique.append(it)
-      return unique
-  
-  def rank_items(items, limit=12):
-      KEYS = ("ai", "model", "fintech", "trade", "compliance", "regulation", "customer", "b2b", "saas")
-      scored = []
-      for it in items:
-          text = (it["title"] + " " + it["summary"]).lower()
-          score = sum(k in text for k in KEYS)
-          if it["link"]:
-              score += 1
-          scored.append((score, it))
-      scored.sort(key=lambda x: x[0], reverse=True)
-      return [it for _, it in scored[:limit]]
-  
-  def require_api_key() -> str:
-      api_key = os.environ.get("OPENAI_API_KEY")
-      if not api_key:
-          raise RuntimeError("OPENAI_API_KEY is not set. Add it in GitHub → Repo → Settings → Secrets → Actions.")
-      return api_key
-  
-  def summarize_with_openai(selected_items):
-      api_key = require_api_key()
-  
-      system_msg = (
-          "You produce a short internal AI newsletter for a trade-finance SaaS company. "
-          "Be factual. Include source links next to claims. Avoid speculation and personal data."
-      )
-      user_payload = {
-          "date": DATE,
-          "instructions": dedent("""
-              Write under 350 words with sections:
-              1) AI in Trade Finance (1 item) + 'What this means for us'
-              2) Tip of the Week
-              3) Internal Spotlight (if none provided, suggest a small, safe internal experiment)
-              4) Quick Hits (3 bullets)
-              5) CTA for pilots/polls
-  
-              Rules:
-              - Include the source link next to each claim (e.g., [Source](URL)).
-              - If you are uncertain about a claim, exclude it or mark it clearly.
-              - No confidential info. No personal data.
-          """).strip(),
-          "items": selected_items
-      }
-  
-      body = {
-          "model": OPENAI_MODEL,
-          "temperature": 0.2,
-          "messages": [
-              {"role": "system", "content": system_msg},
-              {"role": "user", "content": json.dumps(user_payload, ensure_ascii=False)}
-          ]
-      }
-      headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
-      resp = requests.post(OPENAI_API_URL, headers=headers, data=json.dumps(body), timeout=60)
-      if resp.status_code >= 300:
-          die(f"OpenAI API error {resp.status_code}: {resp.text[:500]}")
-      data = resp.json()
-      try:
-          content = data["choices"][0]["message"]["content"]
-      except Exception:
-          die(f"Unexpected OpenAI response shape: {json.dumps(data)[:800]}")
-      return content.strip()
-  
-  def enforce_quality(md_text: str):
-      words = re.findall(r"\b\w+\b", md_text)
-      if len(words) > MAX_WORDS:
-          die(f"Draft too long ({len(words)} words). Keep under {MAX_WORDS} words.")
-      links = re.findall(r"https?://\S+", md_text)
-      if len(links) < REQUIRED_MIN_LINKS:
-          die(f"Draft contains too few links ({len(links)}). Require at least {REQUIRED_MIN_LINKS} source URLs.")
-      for h in ("AI in Trade Finance", "Tip of the Week", "Quick Hits"):
-          if h.lower() not in md_text.lower():
-              die(f"Draft missing required section heading: '{h}'.")
-  
-  # ---------- Slack formatting ----------
-  LINK_MD = re.compile(r"\[([^\]]+)\]\((https?://[^)]+)\)")
-  HEADER_MD = re.compile(r"^(#{1,6})\s+(.*)$")
-  BULLET_MD = re.compile(r"^\s*-\s+")
-  
-  def add_emoji_for_heading(title: str) -> str:
-      t = title.strip().lower()
-      if "ai in trade finance" in t:
-          return f"📢 {title}"
-      if "tip of the week" in t:
-          return f"💡 {title}"
-      if "internal spotlight" in t:
-          return f"🔍 {title}"
-      if "quick hits" in t:
-          return f"⚡ {title}"
-      if "mitimind" in t or "newsletter" in t:
-          return f"🗞️ {title}"
-      return title
-  
-  def convert_md_to_slack(markdown: str) -> str:
-      lines = markdown.splitlines()
-      out = []
-      for ln in lines:
-          m = HEADER_MD.match(ln)
-          if m:
-              title = m.group(2).strip()
-              title = add_emoji_for_heading(title)
-              out.append(f"*{title}*")
-              continue
-          if BULLET_MD.match(ln):
-              ln = BULLET_MD.sub("• ", ln)
-          # convert [text](url) -> <url|text>
-          ln = LINK_MD.sub(r"<\2|\1>", ln)
-          out.append(ln)
-      slack = "\n".join(out)
-      return slack
-  
-  # ---------- Write outputs ----------
-  def write_outputs(md_body: str):
-      OUTDIR.mkdir(parents=True, exist_ok=True)
-      header = f"# MitiMind – {DATE}\n\n"
-      md_full = header + md_body + "\n\n— Auto‑draft by AI agent, please review before publishing.\n"
-      # Write Markdown
-      with OUT_MD.open("w", encoding="utf-8") as f:
-          f.write(md_full)
-      print(f"[OK] Markdown written to {OUT_MD}")
-      # Convert to Slack text and write
-      slack_text = convert_md_to_slack(md_full)
-      with OUT_SLACK.open("w", encoding="utf-8") as f:
-          f.write(slack_text)
-          f.write("\n\n_Read the full issue in Confluence once published._")
-      print(f"[OK] Slack text written to {OUT_SLACK}")
-  
-  # ----------------------------
-  # Main
-  # ----------------------------
-  def main():
-      print("[i] Loading sources…")
-      feeds = load_sources(SOURCES_YML)
-  
-      print("[i] Fetching RSS items…")
-      items = fetch_items(feeds)
-      if not items:
-          die("No items fetched from RSS sources. Check sources.yml or network access.")
-  
-      print(f"[i] Ranking {len(items)} items…")
-      top = rank_items(items, limit=12)
-  
-      print("[i] Calling OpenAI to compose newsletter…")
-      draft = summarize_with_openai(top)
-  
-      print("[i] Enforcing quality gates…")
-      enforce_quality(draft)
-  
-      print("[i] Writing outputs…")
-      write_outputs(draft)
-  
-  if __name__ == "__main__":
-      try:
-          main()
-      except RuntimeError as e:
-          die(str(e))
-  
+name: Publish Newsletter
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - "newsletter/*.md"
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Find latest newsletter files
+        id: find
+        shell: bash
+        run: |
+          set -euo pipefail
+          MD="$(ls -1t newsletter/*.md | head -n 1)"
+          if [ -z "$MD" ]; then echo "No newsletter/*.md found"; exit 1; fi
+          SLACK="${MD%.md}_slack.txt"
+          if [ ! -f "$SLACK" ]; then echo "Slack file not found: $SLACK"; exit 1; fi
+          echo "file_md=$MD" >> "$GITHUB_OUTPUT"
+          echo "file_slack=$SLACK" >> "$GITHUB_OUTPUT"
+          echo "Found MD: $MD"
+          echo "Found Slack: $SLACK"
+
+      - name: Install jq
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y jq
+
+      - name: Post full message to Slack
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+          SLACK_CHANNEL: "#ai-newsletter"   # <-- change if needed
+          FILE_SLACK: ${{ steps.find.outputs.file_slack }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -z "${SLACK_BOT_TOKEN:-}" ]; then
+            echo "SLACK_BOT_TOKEN is not set"; exit 1
+          fi
+          TEXT="$(cat "$FILE_SLACK")"
+          JSON="$(jq -n --arg ch "$SLACK_CHANNEL" --arg txt "$TEXT" \
+            '{channel:$ch, text:$txt, unfurl_links:false}')"
+          RESP="$(curl -s -w '\n%{http_code}' -X POST https://slack.com/api/chat.postMessage \
+            -H "Authorization: Bearer $SLACK_BOT_TOKEN" \
+            -H "Content-type: application/json; charset=utf-8" \
+            --data "$JSON")"
+          BODY="$(echo "$RESP" | head -n1)"
+          CODE="$(echo "$RESP" | tail -n1)"
+          echo "Slack HTTP: $CODE"
+          echo "Slack Body:"; echo "$BODY" | jq .
+          OK="$(echo "$BODY" | jq -r '.ok // false')"
+          if [ "$OK" != "true" ]; then
+            echo "Slack post failed"; exit 1
+          fi
+
+      - name: Update Confluence archive
+        env:
+          CF_BASE:  ${{ secrets.CONFLUENCE_BASE_URL }}   # e.g. https://yourcompany.atlassian.net
+          CF_USER:  ${{ secrets.CONFLUENCE_USER }}        # Atlassian email
+          CF_TOKEN: ${{ secrets.CONFLUENCE_API_TOKEN }}   # Atlassian API token
+          CF_PAGE_ID: ${{ secrets.CONFLUENCE_PAGE_ID }}   # numeric page id
+          FILE_MD: ${{ steps.find.outputs.file_md }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          for v in CF_BASE CF_USER CF_TOKEN CF_PAGE_ID; do
+            if [ -z "${!v:-}" ]; then echo "$v is not set"; exit 1; fi
+          done
+
+          HTML_CONTENT="$(printf '<pre>%s</pre>' "$(sed 's/&/\&amp;/g; s/</\&lt;/g; s/>/\&gt;/g' "$FILE_MD")")"
+          TITLE="$(basename "$FILE_MD" .md): MitiMind"
+
+          # --- Get current version via v1 API ---
+          CURR="$(curl -s -u "$CF_USER:$CF_TOKEN" \
+            "$CF_BASE/wiki/rest/api/content/$CF_PAGE_ID?expand=version")"
+          if [ -z "$CURR" ]; then echo "Empty response from Confluence (version read)"; exit 1; fi
+          VER="$(echo "$CURR" | jq -r '.version.number // 1')"
+          NEW=$((VER+1))
+
+          # --- Build v1 update payload ---
+          DATA="$(jq -n --arg title "$TITLE" --arg body "$HTML_CONTENT" --argjson ver "$NEW" \
+            '{title:$title, type:"page", version:{number:$ver}, body:{storage:{value:$body, representation:"storage"}}}')"
+
+          # --- PUT update via v1 API ---
+          RESP="$(curl -s -w '\n%{http_code}' -u "$CF_USER:$CF_TOKEN" \
+            -X PUT "$CF_BASE/wiki/rest/api/content/$CF_PAGE_ID" \
+            -H "Content-Type: application/json" \
+            --data "$DATA")"
+
+          BODY="$(echo "$RESP" | head -n1)"
+          CODE="$(echo "$RESP" | tail -n1)"
+
+          echo "Confluence HTTP: $CODE"
+          echo "Confluence Body:"; echo "$BODY" | jq .
+
+          if [ "$CODE" -lt 200 ] || [ "$CODE" -ge 300 ]; then
+            echo "Confluence update failed"; exit 1
+          fi
+
+          echo "Updated page title:"; echo "$BODY" | jq -r '.title'
+          echo "New version:"; echo "$BODY" | jq -r '.version.number'
