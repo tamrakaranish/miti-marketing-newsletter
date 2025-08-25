@@ -16,6 +16,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
       - name: Locate latest newsletter files
         id: find
         shell: bash
@@ -37,14 +42,13 @@ jobs:
           if [ -f "$SLACK" ]; then
             echo "Found Slack: $SLACK"
           else
-            echo "Slack file not present (will generate later): $SLACK"
+            echo "Slack file not present (will generate in next step): $SLACK"
           fi
 
           echo "file_md=$MD" >> "$GITHUB_OUTPUT"
           echo "file_slack=$SLACK" >> "$GITHUB_OUTPUT"
 
       - name: Ensure Slack text exists (fallback generator)
-        if: ${{ !exists(steps.find.outputs.file_slack) }} # just to satisfy linter; robust check is inside script call
         shell: bash
         run: |
           set -euo pipefail
