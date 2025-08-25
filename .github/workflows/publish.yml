@@ -16,19 +16,66 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Find latest newsletter files
+      - name: Find latest newsletter files (with fallback if Slack file missing)
         id: find
         shell: bash
         run: |
           set -euo pipefail
-          MD="$(ls -1t newsletter/*.md | head -n 1)"
-          if [ -z "$MD" ]; then echo "No newsletter/*.md found"; exit 1; fi
+
+          echo "== Repo state =="
+          ls -la
+          echo "== newsletter/ =="
+          ls -la newsletter || true
+
+          MD="$(ls -1t newsletter/*.md | head -n 1 || true)"
+          if [ -z "${MD:-}" ]; then
+            echo "No newsletter/*.md found"; exit 1
+          fi
           SLACK="${MD%.md}_slack.txt"
-          if [ ! -f "$SLACK" ]; then echo "Slack file not found: $SLACK"; exit 1; fi
+
+          echo "Found MD: $MD"
+          if [ -f "$SLACK" ]; then
+            echo "Found Slack: $SLACK"
+          else
+            echo "Slack file not found, generating from MD → $SLACK"
+
+            python - <<'PY'
+import os, re, sys, html
+md_path = os.environ["MD"]
+slack_path = os.environ["SLACK"]
+
+with open(md_path, "r", encoding="utf-8") as f:
+    md = f.read()
+
+# Headings (# ..) -> bold, with simple emojis for known sections
+hdr = re.compile(r'^(#{1,6})\s+(.*)$', re.M)
+def add_emoji(title: str) -> str:
+    t = title.lower()
+    if "ai in trade finance" in t: return f"📢 {title}"
+    if "tip of the week" in t:     return f"💡 {title}"
+    if "internal spotlight" in t:  return f"🔍 {title}"
+    if "quick hits" in t:          return f"⚡ {title}"
+    if "mitimind" in t or "newsletter" in t: return f"🗞️ {title}"
+    return title
+
+md = hdr.sub(lambda m: f"*{add_emoji(m.group(2).strip())}*", md)
+
+# Bullets: "- " at line start -> "• "
+md = re.sub(r'(?m)^\s*-\s+', "• ", md)
+
+# Links: [text](url) -> <url|text>
+md = re.sub(r'\[([^\]]+)\]\((https?://[^)]+)\)', r'<\2|\1>', md)
+
+with open(slack_path, "w", encoding="utf-8") as f:
+    f.write(md)
+    f.write("\n\n_Read the full issue in Confluence once published._")
+print("Wrote Slack file:", slack_path)
+PY
+          fi
+
+          # Export for downstream steps
           echo "file_md=$MD" >> "$GITHUB_OUTPUT"
           echo "file_slack=$SLACK" >> "$GITHUB_OUTPUT"
-          echo "Found MD: $MD"
-          echo "Found Slack: $SLACK"
 
       - name: Install jq
         run: |
@@ -62,7 +109,7 @@ jobs:
             echo "Slack post failed"; exit 1
           fi
 
-      - name: Update Confluence archive
+      - name: Update Confluence archive (v1 API)
         env:
           CF_BASE:  ${{ secrets.CONFLUENCE_BASE_URL }}   # e.g. https://yourcompany.atlassian.net
           CF_USER:  ${{ secrets.CONFLUENCE_USER }}        # Atlassian email
@@ -79,18 +126,15 @@ jobs:
           HTML_CONTENT="$(printf '<pre>%s</pre>' "$(sed 's/&/\&amp;/g; s/</\&lt;/g; s/>/\&gt;/g' "$FILE_MD")")"
           TITLE="$(basename "$FILE_MD" .md): MitiMind"
 
-          # --- Get current version via v1 API ---
           CURR="$(curl -s -u "$CF_USER:$CF_TOKEN" \
             "$CF_BASE/wiki/rest/api/content/$CF_PAGE_ID?expand=version")"
           if [ -z "$CURR" ]; then echo "Empty response from Confluence (version read)"; exit 1; fi
           VER="$(echo "$CURR" | jq -r '.version.number // 1')"
           NEW=$((VER+1))
 
-          # --- Build v1 update payload ---
           DATA="$(jq -n --arg title "$TITLE" --arg body "$HTML_CONTENT" --argjson ver "$NEW" \
             '{title:$title, type:"page", version:{number:$ver}, body:{storage:{value:$body, representation:"storage"}}}')"
 
-          # --- PUT update via v1 API ---
           RESP="$(curl -s -w '\n%{http_code}' -u "$CF_USER:$CF_TOKEN" \
             -X PUT "$CF_BASE/wiki/rest/api/content/$CF_PAGE_ID" \
             -H "Content-Type: application/json" \
