@@ -16,15 +16,15 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Find latest newsletter files (with fallback if Slack file missing)
+      - name: Locate latest newsletter files
         id: find
         shell: bash
         run: |
           set -euo pipefail
 
-          echo "== Repo state =="
+          echo "== repo root =="
           ls -la
-          echo "== newsletter/ =="
+          echo "== newsletter dir =="
           ls -la newsletter || true
 
           MD="$(ls -1t newsletter/*.md | head -n 1 || true)"
@@ -37,45 +37,26 @@ jobs:
           if [ -f "$SLACK" ]; then
             echo "Found Slack: $SLACK"
           else
-            echo "Slack file not found, generating from MD → $SLACK"
-
-            python - <<'PY'
-import os, re, sys, html
-md_path = os.environ["MD"]
-slack_path = os.environ["SLACK"]
-
-with open(md_path, "r", encoding="utf-8") as f:
-    md = f.read()
-
-# Headings (# ..) -> bold, with simple emojis for known sections
-hdr = re.compile(r'^(#{1,6})\s+(.*)$', re.M)
-def add_emoji(title: str) -> str:
-    t = title.lower()
-    if "ai in trade finance" in t: return f"📢 {title}"
-    if "tip of the week" in t:     return f"💡 {title}"
-    if "internal spotlight" in t:  return f"🔍 {title}"
-    if "quick hits" in t:          return f"⚡ {title}"
-    if "mitimind" in t or "newsletter" in t: return f"🗞️ {title}"
-    return title
-
-md = hdr.sub(lambda m: f"*{add_emoji(m.group(2).strip())}*", md)
-
-# Bullets: "- " at line start -> "• "
-md = re.sub(r'(?m)^\s*-\s+', "• ", md)
-
-# Links: [text](url) -> <url|text>
-md = re.sub(r'\[([^\]]+)\]\((https?://[^)]+)\)', r'<\2|\1>', md)
-
-with open(slack_path, "w", encoding="utf-8") as f:
-    f.write(md)
-    f.write("\n\n_Read the full issue in Confluence once published._")
-print("Wrote Slack file:", slack_path)
-PY
+            echo "Slack file not present (will generate later): $SLACK"
           fi
 
-          # Export for downstream steps
           echo "file_md=$MD" >> "$GITHUB_OUTPUT"
           echo "file_slack=$SLACK" >> "$GITHUB_OUTPUT"
+
+      - name: Ensure Slack text exists (fallback generator)
+        if: ${{ !exists(steps.find.outputs.file_slack) }} # just to satisfy linter; robust check is inside script call
+        shell: bash
+        run: |
+          set -euo pipefail
+          MD="${{ steps.find.outputs.file_md }}"
+          SLACK="${{ steps.find.outputs.file_slack }}"
+          if [ ! -f "$SLACK" ]; then
+            echo "Generating Slack text from $MD → $SLACK"
+            export MD SLACK
+            python scripts/format_slack.py
+          else
+            echo "Slack file already exists: $SLACK"
+          fi
 
       - name: Install jq
         run: |
@@ -92,6 +73,9 @@ PY
           set -euo pipefail
           if [ -z "${SLACK_BOT_TOKEN:-}" ]; then
             echo "SLACK_BOT_TOKEN is not set"; exit 1
+          fi
+          if [ ! -f "$FILE_SLACK" ]; then
+            echo "Slack file missing at post time: $FILE_SLACK"; exit 1
           fi
           TEXT="$(cat "$FILE_SLACK")"
           JSON="$(jq -n --arg ch "$SLACK_CHANNEL" --arg txt "$TEXT" \
