@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Generate a draft AI newsletter markdown file from curated RSS sources.
-Also generate a Slack-friendly text version.
+Generate a draft AI newsletter (Markdown + Slack text).
 
 Outputs:
   newsletter/<YYYY-MM-DD>.md
@@ -35,7 +34,7 @@ OUT_MD = OUTDIR / f"{DATE}.md"
 OUT_SLACK = OUTDIR / f"{DATE}_slack.txt"
 
 OPENAI_API_URL = "https://api.openai.com/v1/chat/completions"
-OPENAI_MODEL = "gpt-4o-mini"   # align with org policy
+OPENAI_MODEL = "gpt-4o-mini"   # keep aligned with your org policy
 
 MAX_WORDS = 400
 REQUIRED_MIN_LINKS = 3
@@ -196,22 +195,20 @@ def convert_md_to_slack(markdown: str) -> str:
             continue
         if BULLET_MD.match(ln):
             ln = BULLET_MD.sub("• ", ln)
-        # convert [text](url) -> <url|text>
-        ln = LINK_MD.sub(r"<\2|\1>", ln)
+        ln = LINK_MD.sub(r"<\2|\1>", ln)  # [text](url) -> <url|text>
         out.append(ln)
-    slack = "\n".join(out)
-    return slack
+    return "\n".join(out)
 
 # ---------- Write outputs ----------
 def write_outputs(md_body: str):
     OUTDIR.mkdir(parents=True, exist_ok=True)
     header = f"# MitiMind – {DATE}\n\n"
     md_full = header + md_body + "\n\n— Auto‑draft by AI agent, please review before publishing.\n"
-    # Write Markdown
+    # Markdown for PR/Confluence
     with OUT_MD.open("w", encoding="utf-8") as f:
         f.write(md_full)
     print(f"[OK] Markdown written to {OUT_MD}")
-    # Convert to Slack text and write
+    # Slack-friendly text
     slack_text = convert_md_to_slack(md_full)
     with OUT_SLACK.open("w", encoding="utf-8") as f:
         f.write(slack_text)
