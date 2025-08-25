@@ -64,10 +64,10 @@ jobs:
 
       - name: Update Confluence archive
         env:
-          CF_BASE:  ${{ secrets.CONFLUENCE_BASE_URL }}
-          CF_USER:  ${{ secrets.CONFLUENCE_USER }}
-          CF_TOKEN: ${{ secrets.CONFLUENCE_API_TOKEN }}
-          CF_PAGE_ID: ${{ secrets.CONFLUENCE_PAGE_ID }}
+          CF_BASE:  ${{ secrets.CONFLUENCE_BASE_URL }}   # e.g. https://yourcompany.atlassian.net
+          CF_USER:  ${{ secrets.CONFLUENCE_USER }}        # Atlassian email
+          CF_TOKEN: ${{ secrets.CONFLUENCE_API_TOKEN }}   # Atlassian API token
+          CF_PAGE_ID: ${{ secrets.CONFLUENCE_PAGE_ID }}   # numeric page id
           FILE_MD: ${{ steps.find.outputs.file_md }}
         shell: bash
         run: |
@@ -75,23 +75,36 @@ jobs:
           for v in CF_BASE CF_USER CF_TOKEN CF_PAGE_ID; do
             if [ -z "${!v:-}" ]; then echo "$v is not set"; exit 1; fi
           done
+
           HTML_CONTENT="$(printf '<pre>%s</pre>' "$(sed 's/&/\&amp;/g; s/</\&lt;/g; s/>/\&gt;/g' "$FILE_MD")")"
-          CURR="$(curl -s -u "$CF_USER:$CF_TOKEN" "$CF_BASE/wiki/api/v2/pages/$CF_PAGE_ID")"
+          TITLE="$(basename "$FILE_MD" .md): MitiMind"
+
+          # --- Get current version via v1 API ---
+          CURR="$(curl -s -u "$CF_USER:$CF_TOKEN" \
+            "$CF_BASE/wiki/rest/api/content/$CF_PAGE_ID?expand=version")"
+          if [ -z "$CURR" ]; then echo "Empty response from Confluence (version read)"; exit 1; fi
           VER="$(echo "$CURR" | jq -r '.version.number // 1')"
           NEW=$((VER+1))
-          TITLE="$(basename "$FILE_MD" .md): MitiMind"
+
+          # --- Build v1 update payload ---
           DATA="$(jq -n --arg title "$TITLE" --arg body "$HTML_CONTENT" --argjson ver "$NEW" \
-            '{version:{number:$ver}, title:$title, body:{storage:{value:$body, representation:"storage"}}}')"
+            '{title:$title, type:"page", version:{number:$ver}, body:{storage:{value:$body, representation:"storage"}}}')"
+
+          # --- PUT update via v1 API ---
           RESP="$(curl -s -w '\n%{http_code}' -u "$CF_USER:$CF_TOKEN" \
-            -X PUT "$CF_BASE/wiki/api/v2/pages/$CF_PAGE_ID" \
+            -X PUT "$CF_BASE/wiki/rest/api/content/$CF_PAGE_ID" \
             -H "Content-Type: application/json" \
             --data "$DATA")"
+
           BODY="$(echo "$RESP" | head -n1)"
           CODE="$(echo "$RESP" | tail -n1)"
+
           echo "Confluence HTTP: $CODE"
           echo "Confluence Body:"; echo "$BODY" | jq .
+
           if [ "$CODE" -lt 200 ] || [ "$CODE" -ge 300 ]; then
             echo "Confluence update failed"; exit 1
           fi
+
           echo "Updated page title:"; echo "$BODY" | jq -r '.title'
           echo "New version:"; echo "$BODY" | jq -r '.version.number'
