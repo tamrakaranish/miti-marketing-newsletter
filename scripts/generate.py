@@ -34,7 +34,7 @@ OUT_MD = OUTDIR / f"{DATE}.md"
 OUT_SLACK = OUTDIR / f"{DATE}_slack.txt"
 
 OPENAI_API_URL = "https://api.openai.com/v1/chat/completions"
-OPENAI_MODEL = "gpt-o4-mini"   # upgraded model for better analysis
+OPENAI_MODEL = "gpt-5-mini"   # upgraded model for better analysis
 
 MAX_WORDS = 400
 REQUIRED_MIN_LINKS = 3
