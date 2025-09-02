@@ -136,7 +136,6 @@ def summarize_with_openai(selected_items):
 
     body = {
         "model": OPENAI_MODEL,
-        "temperature": 0.25,
         "messages": [
             {"role": "system", "content": system_msg},
             {"role": "user", "content": json.dumps(user_payload, ensure_ascii=False)}

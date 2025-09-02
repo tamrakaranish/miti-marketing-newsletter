@@ -1,4 +1,4 @@
-name: Publish Newsletter
+name: "Publish Newsletter"
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
       - "newsletter/*.md"
 
 permissions:
-  contents: read
+  contents: write  # Need write permissions to delete branches
 
 jobs:
   publish:
@@ -15,6 +15,14 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Cleanup newsletter branches
+        shell: bash
+        run: |
+          # Delete any newsletter/draft-* branches that have been merged
+          echo "🧹 Cleaning up old newsletter branches..."
+          git branch -r | grep "origin/newsletter/draft-" | sed 's/origin\///' | xargs -I {} git push origin --delete {} || true
+          echo "✅ Branch cleanup completed"
 
       - name: Set up Python
         uses: actions/setup-python@v5
