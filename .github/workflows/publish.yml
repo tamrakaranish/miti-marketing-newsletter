@@ -1,13 +1,13 @@
-name: Publish Newsletter
+name: "Publish Newsletter"
 
 on:
   push:
-    branches: [ main ]
     paths:
-      - "newsletter/*.md"
+      - "newsletter/*.md"  # Trigger from ANY branch when newsletter files change
+  workflow_dispatch:  # Allow manual triggering from any branch
 
 permissions:
-  contents: read
+  contents: write  # Need write permissions to delete branches
 
 jobs:
   publish:
@@ -15,6 +15,14 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Cleanup newsletter branches
+        shell: bash
+        run: |
+          # Delete any newsletter/draft-* branches that have been merged
+          echo "🧹 Cleaning up old newsletter branches..."
+          git branch -r | grep "origin/newsletter/draft-" | sed 's/origin\///' | xargs -I {} git push origin --delete {} || true
+          echo "✅ Branch cleanup completed"
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -73,36 +81,6 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y jq
-
-      - name: Post full message to Slack
-        env:
-          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
-          SLACK_CHANNEL: "#ai-publish-test"   # <-- change if needed
-          FILE_SLACK: ${{ steps.find.outputs.file_slack }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          if [ -z "${SLACK_BOT_TOKEN:-}" ]; then
-            echo "SLACK_BOT_TOKEN is not set"; exit 1
-          fi
-          if [ ! -f "$FILE_SLACK" ]; then
-            echo "Slack file missing at post time: $FILE_SLACK"; exit 1
-          fi
-          TEXT="$(cat "$FILE_SLACK")"
-          JSON="$(jq -n --arg ch "$SLACK_CHANNEL" --arg txt "$TEXT" \
-            '{channel:$ch, text:$txt, unfurl_links:false}')"
-          RESP="$(curl -s -w '\n%{http_code}' -X POST https://slack.com/api/chat.postMessage \
-            -H "Authorization: Bearer $SLACK_BOT_TOKEN" \
-            -H "Content-type: application/json; charset=utf-8" \
-            --data "$JSON")"
-          BODY="$(echo "$RESP" | head -n1)"
-          CODE="$(echo "$RESP" | tail -n1)"
-          echo "Slack HTTP: $CODE"
-          echo "Slack Body:"; echo "$BODY" | jq .
-          OK="$(echo "$BODY" | jq -r '.ok // false')"
-          if [ "$OK" != "true" ]; then
-            echo "Slack post failed"; exit 1
-          fi
 
       - name: Create new Confluence post
         env:
@@ -173,4 +151,44 @@ jobs:
           echo "Created new page:"
           echo "Title: $(echo "$BODY" | jq -r '.title')"
           echo "ID: $(echo "$BODY" | jq -r '.id')"
-          echo "URL: $CF_BASE/wiki$(echo "$BODY" | jq -r '._links.webui')"
+          CONFLUENCE_URL="$CF_BASE/wiki$(echo "$BODY" | jq -r '._links.webui')"
+          echo "URL: $CONFLUENCE_URL"
+          
+          # Save Confluence URL for Slack step
+          echo "CONFLUENCE_URL=$CONFLUENCE_URL" >> "$GITHUB_ENV"
+
+      - name: Post newsletter to Slack with Confluence link
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+          SLACK_CHANNEL: "#ai-publish-test"   # <-- change if needed
+          FILE_SLACK: ${{ steps.find.outputs.file_slack }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -z "${SLACK_BOT_TOKEN:-}" ]; then
+            echo "SLACK_BOT_TOKEN is not set"; exit 1
+          fi
+          if [ ! -f "$FILE_SLACK" ]; then
+            echo "Slack file missing at post time: $FILE_SLACK"; exit 1
+          fi
+          
+          # Read newsletter content and add Confluence link
+          TEXT="$(cat "$FILE_SLACK")"
+          if [ -n "${CONFLUENCE_URL:-}" ]; then
+            TEXT="$TEXT"$'\n\n'"📖 *Read the full newsletter in Confluence:* $CONFLUENCE_URL"
+          fi
+          
+          JSON="$(jq -n --arg ch "$SLACK_CHANNEL" --arg txt "$TEXT" \
+            '{channel:$ch, text:$txt, unfurl_links:true}')"
+          RESP="$(curl -s -w '\n%{http_code}' -X POST https://slack.com/api/chat.postMessage \
+            -H "Authorization: Bearer $SLACK_BOT_TOKEN" \
+            -H "Content-type: application/json; charset=utf-8" \
+            --data "$JSON")"
+          BODY="$(echo "$RESP" | head -n1)"
+          CODE="$(echo "$RESP" | tail -n1)"
+          echo "Slack HTTP: $CODE"
+          echo "Slack Body:"; echo "$BODY" | jq .
+          OK="$(echo "$BODY" | jq -r '.ok // false')"
+          if [ "$OK" != "true" ]; then
+            echo "Slack post failed"; exit 1
+          fi
