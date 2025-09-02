@@ -244,7 +244,6 @@ def write_outputs(md_body: str):
     slack_text = convert_md_to_slack(md_full)
     with OUT_SLACK.open("w", encoding="utf-8") as f:
         f.write(slack_text)
-        f.write("\n\n_Read the full issue in Confluence once published._")
     print(f"[OK] Slack text written to {OUT_SLACK}")
 
 # ----------------------------
