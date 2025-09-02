@@ -2,8 +2,9 @@ name: "Publish Newsletter"
 
 on:
   push:
+    branches: [ main, Confluencefirst ]  # Only trigger from main or your dev branch
     paths:
-      - "newsletter/*.md"  # Trigger from ANY branch when newsletter files change
+      - "newsletter/*.md"
   workflow_dispatch:  # Allow manual triggering from any branch
 
 permissions:
@@ -36,8 +37,12 @@ jobs:
           set -euo pipefail
       
           echo "== Changed files in this push =="
-          git fetch --depth=2 origin "${{ github.ref }}"
-          CHANGED="$(git diff --name-only "${{ github.event.before }}" "${{ github.sha }}")"
+          # Try to get changed files, fallback to latest if it fails
+          if [ -n "${{ github.event.before }}" ] && [ "${{ github.event.before }}" != "0000000000000000000000000000000000000000" ]; then
+            CHANGED="$(git diff --name-only "${{ github.event.before }}" "${{ github.sha }}" 2>/dev/null || echo "")"
+          else
+            CHANGED=""
+          fi
           echo "$CHANGED"
       
           # Pick date-named newsletters touched by this push
