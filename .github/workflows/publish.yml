@@ -167,9 +167,7 @@ jobs:
           # Read newsletter content and add Confluence link
           TEXT="$(cat "$FILE_SLACK")"
           if [ -n "${CONFLUENCE_URL:-}" ]; then
-            TEXT="$TEXT
-
-📖 *Read the full newsletter in Confluence:* $CONFLUENCE_URL"
+            TEXT="$TEXT"$'\n\n'"📖 *Read the full newsletter in Confluence:* $CONFLUENCE_URL"
           fi
           
           JSON="$(jq -n --arg ch "$SLACK_CHANNEL" --arg txt "$TEXT" \
