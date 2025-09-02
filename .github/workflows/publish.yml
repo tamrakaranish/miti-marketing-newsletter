@@ -104,34 +104,59 @@ jobs:
             echo "Slack post failed"; exit 1
           fi
 
-      - name: Update Confluence archive (v1 API)
+      - name: Create new Confluence post
         env:
-          CF_BASE:  ${{ secrets.CONFLUENCE_BASE_URL }}   # e.g. https://yourcompany.atlassian.net
-          CF_USER:  ${{ secrets.CONFLUENCE_USER }}        # Atlassian email
-          CF_TOKEN: ${{ secrets.CONFLUENCE_API_TOKEN }}   # Atlassian API token
-          CF_PAGE_ID: ${{ secrets.CONFLUENCE_PAGE_ID }}   # numeric page id
+          CF_BASE:  ${{ secrets.CONFLUENCE_BASE_URL }}     # e.g. https://yourcompany.atlassian.net
+          CF_USER:  ${{ secrets.CONFLUENCE_USER }}          # Atlassian email
+          CF_TOKEN: ${{ secrets.CONFLUENCE_API_TOKEN }}     # Atlassian API token
+          CF_SPACE_KEY: ${{ secrets.CONFLUENCE_SPACE_KEY }} # Space key (e.g. "NEWSLETTER")
           FILE_MD: ${{ steps.find.outputs.file_md }}
         shell: bash
         run: |
           set -euo pipefail
-          for v in CF_BASE CF_USER CF_TOKEN CF_PAGE_ID; do
+          for v in CF_BASE CF_USER CF_TOKEN CF_SPACE_KEY; do
             if [ -z "${!v:-}" ]; then echo "$v is not set"; exit 1; fi
           done
 
-          HTML_CONTENT="$(printf '<pre>%s</pre>' "$(sed 's/&/\&amp;/g; s/</\&lt;/g; s/>/\&gt;/g' "$FILE_MD")")"
-          TITLE="$(basename "$FILE_MD" .md): MitiMind"
+          # Convert markdown to Confluence storage format
+          MD_CONTENT="$(cat "$FILE_MD")"
+          HTML_CONTENT="$(echo "$MD_CONTENT" | sed 's/&/\&amp;/g; s/</\&lt;/g; s/>/\&gt;/g')"
+          
+          # Convert markdown formatting to Confluence markup
+          HTML_CONTENT="$(echo "$HTML_CONTENT" | sed -E 's/^# (.*)/\<h1\>\1\<\/h1\>/g')"
+          HTML_CONTENT="$(echo "$HTML_CONTENT" | sed -E 's/^## (.*)/\<h2\>\1\<\/h2\>/g')"
+          HTML_CONTENT="$(echo "$HTML_CONTENT" | sed -E 's/^### (.*)/\<h3\>\1\<\/h3\>/g')"
+          HTML_CONTENT="$(echo "$HTML_CONTENT" | sed -E 's/\*\*(.*?)\*\*/\<strong\>\1\<\/strong\>/g')"
+          HTML_CONTENT="$(echo "$HTML_CONTENT" | sed -E 's/\[(.*?)\]\((.*?)\)/\<a href=\"\2\"\>\1\<\/a\>/g')"
+          HTML_CONTENT="$(echo "$HTML_CONTENT" | sed -E 's/^- (.*)/\<li\>\1\<\/li\>/g')"
+          
+          # Wrap in proper Confluence storage format
+          STORAGE_CONTENT="<p>$HTML_CONTENT</p>"
+          
+          # Create unique title with date
+          DATE_PART="$(basename "$FILE_MD" .md)"
+          TITLE="MitiMind AI Newsletter - $DATE_PART"
 
-          CURR="$(curl -s -u "$CF_USER:$CF_TOKEN" \
-            "$CF_BASE/wiki/rest/api/content/$CF_PAGE_ID?expand=version")"
-          if [ -z "$CURR" ]; then echo "Empty response from Confluence (version read)"; exit 1; fi
-          VER="$(echo "$CURR" | jq -r '.version.number // 1')"
-          NEW=$((VER+1))
+          # Create new page payload
+          DATA="$(jq -n \
+            --arg title "$TITLE" \
+            --arg spaceKey "$CF_SPACE_KEY" \
+            --arg body "$STORAGE_CONTENT" \
+            '{
+              type: "page",
+              title: $title,
+              space: { key: $spaceKey },
+              body: {
+                storage: {
+                  value: $body,
+                  representation: "storage"
+                }
+              }
+            }')"
 
-          DATA="$(jq -n --arg title "$TITLE" --arg body "$HTML_CONTENT" --argjson ver "$NEW" \
-            '{title:$title, type:"page", version:{number:$ver}, body:{storage:{value:$body, representation:"storage"}}}')"
-
+          # Create new page (POST, not PUT)
           RESP="$(curl -s -w '\n%{http_code}' -u "$CF_USER:$CF_TOKEN" \
-            -X PUT "$CF_BASE/wiki/rest/api/content/$CF_PAGE_ID" \
+            -X POST "$CF_BASE/wiki/rest/api/content" \
             -H "Content-Type: application/json" \
             --data "$DATA")"
 
@@ -142,8 +167,10 @@ jobs:
           echo "Confluence Body:"; echo "$BODY" | jq .
 
           if [ "$CODE" -lt 200 ] || [ "$CODE" -ge 300 ]; then
-            echo "Confluence update failed"; exit 1
+            echo "Confluence post creation failed"; exit 1
           fi
 
-          echo "Updated page title:"; echo "$BODY" | jq -r '.title'
-          echo "New version:"; echo "$BODY" | jq -r '.version.number'
+          echo "Created new page:"
+          echo "Title: $(echo "$BODY" | jq -r '.title')"
+          echo "ID: $(echo "$BODY" | jq -r '.id')"
+          echo "URL: $CF_BASE/wiki$(echo "$BODY" | jq -r '._links.webui')"
