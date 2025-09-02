@@ -34,7 +34,7 @@ OUT_MD = OUTDIR / f"{DATE}.md"
 OUT_SLACK = OUTDIR / f"{DATE}_slack.txt"
 
 OPENAI_API_URL = "https://api.openai.com/v1/chat/completions"
-OPENAI_MODEL = "gpt-4o-mini"   # keep aligned with your org policy
+OPENAI_MODEL = "gpt-5-mini"   # upgraded model for better analysis
 
 MAX_WORDS = 400
 REQUIRED_MIN_LINKS = 3
@@ -136,7 +136,7 @@ def summarize_with_openai(selected_items):
 
     body = {
         "model": OPENAI_MODEL,
-        "temperature": 0.2,
+        "temperature": 0.25,
         "messages": [
             {"role": "system", "content": system_msg},
             {"role": "user", "content": json.dumps(user_payload, ensure_ascii=False)}
