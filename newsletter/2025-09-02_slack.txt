@@ -1,24 +1,25 @@
 *🗞️ MitiMind – 2025-09-02*
 
-*📢 AI in Trade Finance*
-OpenAI has recently introduced data residency options in Asia and Europe, enhancing its enterprise-grade data privacy and security programs. This development allows businesses to comply with local regulations while leveraging AI capabilities for trade finance solutions <https://openai.com/index/introducing-data-residency-in-asia|OpenAI Blog - Asia>, <https://openai.com/index/introducing-data-residency-in-europe|OpenAI Blog - Europe>. 
+AI Newsletter — 2025-09-02
 
-**What this means for us:** Implementing these data residency options can improve our compliance with regional regulations, thereby enhancing customer trust and potentially expanding our market reach.
+1) AI in Trade Finance
+• OpenAI has launched data residency in Europe to extend enterprise-grade data privacy, security, and compliance for customers using its models in-region (<https://openai.com/index/introducing-data-residency-in-europe|Source>).
+What this means for us: we can evaluate onshore model-hosting options for European trade-finance workloads, update vendor risk assessments and data-flow diagrams, and prioritize pilots that keep sensitive trade documents within the EU region (see pilot idea below). (Source: OpenAI Europe data residency) <https://openai.com/index/introducing-data-residency-in-europe|Source>
 
-*💡 Tip of the Week*
-Utilize AI-driven analytics to assess trade patterns and identify potential risks in transactions. This proactive approach can help mitigate issues before they escalate, ensuring smoother operations.
+2) Tip of the Week
+• Redact or tokenise PII and account numbers before sending documents to external LLMs; prefer region-specific hosting where available to reduce regulatory risk (<https://openai.com/index/introducing-data-residency-in-europe|Source>).
 
-*🔍 Internal Spotlight*
-Consider a small experiment where team members can test a new AI tool for automating invoice processing. Gather feedback on its effectiveness and usability to inform future technology investments.
+3) Internal Spotlight
+• No submission this week — suggested safe experiment: run a 2-week extraction pilot using only synthetic or redacted invoices to measure automated data capture accuracy vs manual entry. If we need customization, note OpenAI offers enterprise fine-tuning support partnerships (for consideration when scaling) (<https://openai.com/index/openai-partners-with-scale-to-provide-support-for-enterprises-fine-tuning-models|Source>).
 
-*⚡ Quick Hits*
-• Visa partners with Ample Earth to integrate sustainability data into merchant transactions, promoting eco-friendly practices in payments <https://www.finextra.com/pressarticle/106891/visa-to-add-sustainability-data-from-ample-earth-to-merchant-transactions?utm_medium=rssfinextra&utm_source=finextrafeed|Finextra>.
-• Finom launches an AI accountant for German customers, enhancing financial management for SMEs <https://www.finextra.com/pressarticle/106885/fnom-rolls-out-ai-acountant-for-german-customers?utm_medium=rssfinextra&utm_source=finextrafeed|Finextra>.
-• Over 30 countries have halted postal services to the US due to the expiration of the de minimis exception, impacting international trade logistics <https://www.tradefinanceglobal.com/posts/over-30-countries-stop-postal-service-to-the-us-as-de-minimis-exception-runs-out/|Trade Finance Global>.
+4) Quick Hits
+• Zopa has acquired AI-based checkout/payments firm Rvvup, expanding AI in payments UX and automation (<https://www.finextra.com/newsarticle/46527/zopa-acquires-payments-automation-firm-rvvup?utm_medium=rssfinextra&utm_source=finextrafeed|Source>).
+• Visa will add sustainability data from Ample Earth into merchant transactions to surface environmental metrics at payment time (<https://www.finextra.com/pressarticle/106891/visa-to-add-sustainability-data-from-ample-earth-to-merchant-transactions?utm_medium=rssfinextra&utm_source=finextrafeed|Source>).
+• Finom has launched an AI accountant feature for German customers, showing continued uptake of AI tools in SME finance operations (<https://www.finextra.com/pressarticle/106885/finom-rolls-out-ai-accountant-for-german-customers?utm_medium=rssfinextra&utm_source=finextrafeed|Source>).
 
-*Call to Action*
-We invite team members to participate in upcoming pilots and polls regarding new AI tools and features. Your feedback is crucial for shaping our product development!
+5) CTA
+• Want to run the invoice-extraction pilot or vote on region-first model hosting? Reply to this thread or drop a note in #ai-pilots.
 
-— Auto‑draft by AI agent, please contact the EMs for any feedback.
+— Auto‑draft by AI agent, please review before publishing.
 
 _Read the full issue in Confluence once published._
