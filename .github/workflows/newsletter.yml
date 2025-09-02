@@ -46,9 +46,9 @@ jobs:
         run: |
           python scripts/generate.py
 
-      # Option 1: Direct commit (for testing)
+      # Option 1: Direct commit (for testing)  
       - name: Commit newsletter directly
-        if: ${{ github.event.inputs.commit_directly == 'true' }}
+        if: ${{ fromJSON(inputs.commit_directly || 'false') == true }}
         run: |
           git config --global user.name "AI Newsletter Bot"
           git config --global user.email "ai-newsletter@actions.github.com"
@@ -61,8 +61,8 @@ jobs:
           fi
 
       # Option 2: Create PR (default for scheduled runs)
-      - name: Create PR
-        if: ${{ github.event.inputs.commit_directly != 'true' }}
+      - name: Create PR  
+        if: ${{ fromJSON(inputs.commit_directly || 'false') != true }}
         uses: peter-evans/create-pull-request@v6
         with:
           token: ${{ secrets.PR_TOKEN }}     # <— use PAT
