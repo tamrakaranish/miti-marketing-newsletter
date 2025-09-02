@@ -2,9 +2,9 @@ name: "Publish Newsletter"
 
 on:
   push:
-    branches: [ main ]
     paths:
-      - "newsletter/*.md"
+      - "newsletter/*.md"  # Trigger from ANY branch when newsletter files change
+  workflow_dispatch:  # Allow manual triggering from any branch
 
 permissions:
   contents: write  # Need write permissions to delete branches

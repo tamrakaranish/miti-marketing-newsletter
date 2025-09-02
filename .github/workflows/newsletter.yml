@@ -4,6 +4,12 @@ on:
   schedule:
     - cron: "0 6 * * 3"         # Wednesdays 07:00 CET (06:00 UTC)
   workflow_dispatch:
+    inputs:
+      commit_directly:
+        description: 'Skip PR and commit directly to current branch'
+        required: false
+        default: 'false'
+        type: boolean
 
 permissions:
   contents: write
@@ -40,8 +46,23 @@ jobs:
         run: |
           python scripts/generate.py
 
-      # IMPORTANT: use Actions expressions, not shell, for the branch name
+      # Option 1: Direct commit (for testing)
+      - name: Commit newsletter directly
+        if: ${{ github.event.inputs.commit_directly == 'true' }}
+        run: |
+          git config --global user.name "AI Newsletter Bot"
+          git config --global user.email "ai-newsletter@actions.github.com"
+          git add newsletter/
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "Add newsletter $(date +%Y-%m-%d)"
+            git push
+          fi
+
+      # Option 2: Create PR (default for scheduled runs)
       - name: Create PR
+        if: ${{ github.event.inputs.commit_directly != 'true' }}
         uses: peter-evans/create-pull-request@v6
         with:
           token: ${{ secrets.PR_TOKEN }}     # <— use PAT
