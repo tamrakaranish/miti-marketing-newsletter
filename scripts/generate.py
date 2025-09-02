@@ -202,7 +202,7 @@ def convert_md_to_slack(markdown: str) -> str:
 def write_outputs(md_body: str):
     OUTDIR.mkdir(parents=True, exist_ok=True)
     header = f"# MitiMind – {DATE}\n\n"
-    md_full = header + md_body + "\n\n— Auto‑draft by AI agent, please review before publishing.\n"
+    md_full = header + md_body + "\n\n— Auto‑draft by AI agent, please contact the EMs for feedback.\n"
     # Markdown for PR/Confluence
     with OUT_MD.open("w", encoding="utf-8") as f:
         f.write(md_full)
