@@ -165,7 +165,7 @@ jobs:
       - name: Post newsletter to Slack with Confluence link
         env:
           SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
-          SLACK_CHANNEL: "#ai-publish-test"   # <-- change if needed
+          SLACK_CHANNEL: "#mitigram-ai"   # <-- change if needed
           FILE_SLACK: ${{ steps.find.outputs.file_slack }}
         shell: bash
         run: |
