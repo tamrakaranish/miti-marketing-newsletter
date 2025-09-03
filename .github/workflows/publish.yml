@@ -6,6 +6,15 @@ on:
     paths:
       - "newsletter/*.md"
   workflow_dispatch:  # Allow manual triggering from any branch
+    inputs:
+      environment:
+        description: 'Choose environment'
+        required: true
+        default: 'test'
+        type: choice
+        options:
+        - test
+        - production
 
 permissions:
   contents: write  # Need write permissions to delete branches
@@ -14,6 +23,17 @@ jobs:
   publish:
     runs-on: ubuntu-latest
     steps:
+      - name: Display environment info
+        run: |
+          if [ "${{ github.event_name }}" = "push" ]; then
+            echo "🚀 Auto-triggered from merge → Publishing to: TEST environment"
+            echo "📱 Slack channel: #ai-publish-test"
+            echo "ℹ️  To publish to production, manually run this workflow and select 'production'"
+          else
+            echo "🚀 Publishing to: ${{ inputs.environment || 'test' }} environment"
+            echo "📱 Slack channel: ${{ inputs.environment == 'production' && '#mitigram-ai' || '#ai-publish-test' }}"
+          fi
+      
       - name: Checkout
         uses: actions/checkout@v4
 
@@ -165,7 +185,7 @@ jobs:
       - name: Post newsletter to Slack with Confluence link
         env:
           SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
-          SLACK_CHANNEL: "#ai-publish-test"   # <-- Change if needed. Test slack channel is #ai-publish-test
+          SLACK_CHANNEL: ${{ github.event_name == 'push' && '#ai-publish-test' || (inputs.environment == 'production' && '#mitigram-ai' || '#ai-publish-test') }}
           FILE_SLACK: ${{ steps.find.outputs.file_slack }}
         shell: bash
         run: |
@@ -184,7 +204,7 @@ jobs:
           fi
           
           JSON="$(jq -n --arg ch "$SLACK_CHANNEL" --arg txt "$TEXT" \
-            '{channel:$ch, text:$txt, unfurl_links:true}')"
+            '{channel:$ch, text:$txt, unfurl_links:false}')"
           RESP="$(curl -s -w '\n%{http_code}' -X POST https://slack.com/api/chat.postMessage \
             -H "Authorization: Bearer $SLACK_BOT_TOKEN" \
             -H "Content-type: application/json; charset=utf-8" \
