@@ -4,27 +4,29 @@ feeds:
     url: https://www.finextra.com/rss/headlines.aspx
   - name: Trade Finance Global
     url: https://www.tradefinanceglobal.com/feed/
+  - name: TLDR Fintech
+    url: https://tldr.tech/api/rss/fintech
   
   # AI & Technology
-  - name: The Batch (deeplearning.ai)
-    url: https://www.deeplearning.ai/the-batch/feed/
   - name: MIT Technology Review AI
     url: https://www.technologyreview.com/feed/
   - name: OpenAI Blog
     url: https://openai.com/blog/rss.xml
-  - name: Anthropic News
-    url: https://www.anthropic.com/news/rss.xml
+  - name: Microsoft AI Blog
+    url: https://blogs.microsoft.com/ai/feed/
+  - name: Hugging Face Blog
+    url: https://huggingface.co/blog/feed.xml
+  - name: TLDR AI
+    url: https://tldr.tech/api/rss/ai
+  
+  # AI Research Papers
+  - name: arXiv cs.AI
+    url: https://arxiv.org/rss/cs.AI
+  - name: arXiv cs.LG
+    url: https://arxiv.org/rss/cs.LG
   
   # Business & Strategy
-  - name: Benedict Evans
-    url: https://www.ben-evans.com/feed
   - name: a16z Future
     url: https://future.com/feed/
-  - name: Harvard Business Review AI
-    url: https://feeds.hbr.org/harvardbusiness/
-  
-  # Product & Development
-  - name: First Round Review
-    url: https://review.firstround.com/rss.xml
-  - name: Product Hunt Daily
-    url: https://www.producthunt.com/feed/daily
+  - name: TLDR Product
+    url: https://tldr.tech/api/rss/product

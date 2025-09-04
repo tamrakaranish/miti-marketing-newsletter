@@ -92,7 +92,19 @@ def fetch_items(feeds):
     return unique
 
 def rank_items(items, limit=12):
-    KEYS = ("ai", "model", "fintech", "trade", "compliance", "regulation", "customer", "b2b", "saas")
+    KEYS = (
+        # Core AI
+        "ai", "artificial intelligence", "model", "models", "llm", "genai", "machine learning",
+        # Trade finance and banking
+        "trade finance", "trade-finance", "trade", "commodity", "letter of credit", "lc", "bill of lading",
+        "swift", "iso 20022", "payments", "cross-border", "fx", "treasury", "bank", "banking", "supply chain finance",
+        "invoice finance", "factoring",
+        # Risk, compliance, regulation
+        "aml", "kyc", "sanctions", "ofac", "basel", "governance", "risk", "compliance", "regtech", "fincrime",
+        "regulation", "regulatory", "eu ai act",
+        # Business context
+        "customer", "b2b", "saas"
+    )
     scored = []
     for it in items:
         text = (it["title"] + " " + it["summary"]).lower()

@@ -200,6 +200,7 @@ For detailed configuration options, see:
 - **[README.md](README.md)** - This overview and setup guide
 - **[CONFIG.md](CONFIG.md)** - Complete configuration reference
 - **[STAGING_GUIDE.md](STAGING_GUIDE.md)** - Environment and testing guide
+- **[FEED_VALIDATION_GUIDE.md](FEED_VALIDATION_GUIDE.md)** - Step-by-step guide for validating RSS feeds
 
 ## 📧 Support
 
