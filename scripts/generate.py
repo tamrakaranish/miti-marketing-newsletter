@@ -134,15 +134,27 @@ def summarize_with_openai(selected_items):
     user_payload = {
         "date": DATE,
         "instructions": dedent("""
-            Write under 350 words with sections:
-            1) AI in Trade Finance (1 item) + 'What this means for us'
-            2) Tip of the Week
-            3) Internal Spotlight (if none provided, suggest a small, safe internal experiment)
-            4) Quick Hits (3 bullets)
-            5) CTA for pilots/polls
+            Write under 350 words using proper Markdown headings for sections:
+            
+            ## AI in Trade Finance
+            (1 item) + 'What this means for us'
+            
+            ## Tip of the Week
+            (Weekly insight or best practice)
+            
+            ## Internal Spotlight 
+            (If none provided, suggest a small, safe internal experiment)
+            
+            ## Quick Hits
+            (3 bullet points)
+            
+            ## CTA for pilots/polls
+            (Call to action)
 
             Rules:
             - DO NOT include a title or header - the title is already provided.
+            - Use proper Markdown headings with ## for each section
+            - Start directly with the first section content
             - Include the source link next to each claim (e.g., [Source](URL)).
             - If you are uncertain about a claim, exclude it or mark it clearly.
             - No confidential info. No personal data.
