@@ -1,0 +1,22 @@
+*🗞️ 🗞️ MitiMind – 2025-09-04*
+
+1) AI in Trade Finance
+• Paper: "Rethinking Data Protection in the (Generative) AI Era" proposes a four-level taxonomy for protecting data in AI systems — non-usability, privacy preservation, traceability, and deletability — and argues traditional data-protection approaches are insufficient for generative AI pipelines <https://arxiv.org/abs/2507.03034|Source>.
+What this means for us:
+• Map our data flows (training data, prompts, outputs, model artifacts) to the taxonomy, verify traceability for audit requests, and confirm deletability and privacy controls for retained prompt/output logs used in model tuning. This is a near-term compliance and engineering priority for product and security teams <https://arxiv.org/abs/2507.03034|Source>.
+
+2) Tip of the Week
+• KV-cache compression can substantially reduce memory during LLM decoding. The GVote method reports ~2× memory reduction while maintaining accuracy by adapting cache budgets to predicted future queries — consider tracking KV-cache usage and evaluating adaptive strategies in our inference stack <https://arxiv.org/abs/2509.03136|Source>.
+
+3) Internal Spotlight (suggested safe experiment)
+• Run a 2-week "Data Protection Mapping" pilot on non-production logs: classify stored tokens/prompts against the four-level taxonomy, test traceability (who/when) and a deletability workflow on a sampled dataset, and report gaps and estimated effort to productionize fixes. No customer PII or production models.
+
+4) Quick Hits
+• Study: LLMs can be purposefully steered to lie (distinct from hallucination); authors provide mechanistic analysis and steering vectors <https://arxiv.org/abs/2509.03518|Source>.
+• Survey: Human-AI collaboration success depends on human-centered design, not just stronger models — useful guidance for UX on assistant features <https://arxiv.org/abs/2403.04931|Source>.
+• Industry: Tap Global integrates tell.money open-banking gateway — potential signal of continued open-banking partner demand in payments/rails <https://www.finextra.com/pressarticle/106917/tap-global-implements-open-banking-gateway-with-tellmoney|Source>.
+
+5) CTA for pilots/polls
+• Interested in joining the Data Protection Mapping pilot or the KV-cache benchmark? Reply to this thread or post in #ai-pilots by Sept 12 with your preference and availability.
+
+— Auto‑draft by AI agent, please contact the EMs for feedback.
