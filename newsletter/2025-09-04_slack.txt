@@ -1,21 +1,21 @@
-*🗞️ 🗞️ MitiMind – 2025-09-04*
+*🗞️ MitiMind – 2025-09-04*
 
-*🚀 🚀 AI in Trade Finance*
-HyPV-LEAD introduces a proactive early-warning framework for cryptocurrency anomalies that explicitly models lead time and reports strong benchmark results (PR‑AUC 0.9624) using hyperbolic embeddings and windowed sampling to improve precision/recall for alerts <https://arxiv.org/abs/2509.03260|Source>.  
-What this means for us: consider evaluating early-warning (lead-time) approaches for crypto-linked payment flows and sanctions/AML monitoring; proactive alerts could move some detection from reactive investigation to preemptive review.
+*🚀 AI in Trade Finance*
+HyPV-LEAD presents a proactive, lead-time anomaly-detection framework for cryptocurrency transactions that reports a PR‑AUC of 0.9624 on Bitcoin data by combining window-horizon modeling, Peak‑Valley sampling, and hyperbolic embeddings <https://arxiv.org/abs/2509.03260|Source>.  
+What this means for us: the paper demonstrates that shifting from reactive flags to early‑warning signals is feasible on public blockchain data; we should assess whether similar structural‑temporal approaches can improve AML/monitoring for trade‑related payment rails (using synthetic/public data first).
 
-*💡 💡 Tip of the Week*
-Rethink data protection across the full AI lifecycle by adopting a layered taxonomy: non-usability, privacy preservation, traceability, and deletability — this helps align model utility with enforceable controls for training data, prompts, weights, and outputs <https://arxiv.org/abs/2507.03034|Source>. Practical step: add traceability metadata to any dataset used for model training and enforce a deletability workflow for records subject to regulatory removal.
+*💡 Tip of the Week*
+If you run LLMs in inference-heavy flows, consider adaptive KV-cache compression: GVote claims ~2× memory reduction while maintaining accuracy by predicting future query attention and adapting cache budget automatically <https://arxiv.org/abs/2509.03136|Source>. For us, this can reduce hosting cost or enable longer-context features without manually tuning cache budgets.
 
-*🔍 🔍 Internal Spotlight*
-No submissions this week — suggested safe experiment: run a 2‑week sandbox pilot using fully anonymized transaction logs to test a simple lead-time anomaly detector. Goals: (a) measure precision@K and time‑to‑alert, (b) verify false-positive handling in our workflows, (c) confirm data governance controls (anonymization, retention). Keep models and data in an isolated environment.
+*🔍 Internal Spotlight*
+No spotlight submitted this week — suggested safe experiment: run a 2–4 week proof‑of‑concept using public blockchain data (e.g., Bitcoin) and synthetic trade‑payment streams to evaluate an early‑warning model inspired by HyPV‑LEAD. Objectives: measure lead time, precision at high recall, and integration complexity. Use only public/synthetic data and document metrics and risks <https://arxiv.org/abs/2509.03260|Source>.
 
-*⚡ ⚡ Quick Hits*
-• Tap Global integrated an open‑banking gateway with tell.money to expand payment rails and account connectivity <https://www.finextra.com/pressarticle/106917/tap-global-implements-open-banking-gateway-with-tellmoney?utm_medium=rssfinextra&utm_source=finextrafeed|Source>.  
-• New research distinguishes lying from hallucination in LLMs and studies mechanisms and behavioral steering for deceptive outputs — relevant for compliance and model-assurance practices <https://arxiv.org/abs/2509.03518|Source>.  
-• Model poisoning and patch-based attacks remain active research areas; recent work proposes lightweight autoencoder detection for poisoned object-detection samples — a reminder to validate training-data provenance <https://arxiv.org/abs/2509.03179|Source>.
+*⚡ Quick Hits*
+• OpenAI + research partners published a framework analyzing LLM misuse for disinformation and mitigation strategies (policy + technical controls) <https://openai.com/index/forecasting-misuse|Source>.  
+• Study finds LLM-based agents push users toward more popular choices and can reduce both interpersonal distinctiveness and intrapersonal diversity <https://arxiv.org/abs/2509.02910|Source>.  
+• ANNIE paper shows embodied AI (vision‑language‑action agents) introduces new physical safety attack surfaces with attack success >50% in their benchmark, underscoring security needs for any robotics integration <https://arxiv.org/abs/2509.03383|Source>.
 
-*📋 📋 CTA for pilots/polls*
-Interested in the lead-time anomaly pilot or prioritizing controls (traceability vs. deletability)? Reply to this bulletin or join #ai-pilots on Slack by 2025‑09‑12 to sign up or vote.
+*📋 CTA for pilots/polls*
+Interested in joining a 2–4 week HyPV‑LEAD POC or evaluating GVote on our LLM stack? Reply to this email with "pilot: anomalies" or "pilot: kvcache" (deadline: Friday) — we'll collate volunteers and scope next steps.
 
 — Auto‑draft by AI agent, please contact the EMs for feedback.
