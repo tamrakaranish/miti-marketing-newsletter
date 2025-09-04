@@ -18,16 +18,24 @@ A beginner-friendly guide to using test vs production environments for your AI n
 
 ## 🎯 How to Use
 
-### **Option 1: Manual Publishing** (Recommended)
+### **Option 1: Normal Production Flow**
+1. **Wednesday**: AI generates newsletter → Creates PR
+2. **Review & Merge PR** → Auto-publishes to **PRODUCTION**
+
+### **Option 2: Testing Newsletter Generation**
+1. **Go to GitHub** → Actions → "Generate AI Newsletter"
+2. **Click "Run workflow"**
+3. **Check "Skip PR and commit directly"**
+4. **Choose target environment**:
+   - `test` → Will publish to `#ai-publish-test`
+   - `production` → Will publish to `#mitigram-ai`
+5. **Click "Run workflow"**
+
+### **Option 3: Manual Publishing Only**
 1. **Go to GitHub** → Actions → "Publish Newsletter"
 2. **Click "Run workflow"**
-3. **Choose your environment**:
-   - `test` → Posts to `#ai-publish-test`
-   - `production` → Posts to `#mitigram-ai`
+3. **Choose environment**: `test` or `production`
 4. **Click "Run workflow"**
-
-### **Option 2: Automatic Publishing** (Advanced)
-When newsletters are merged from PRs, they default to **test** environment.
 
 ## 📝 Recommended Workflow
 

@@ -127,6 +127,7 @@ def summarize_with_openai(selected_items):
             5) CTA for pilots/polls
 
             Rules:
+            - DO NOT include a title or header - the title is already provided.
             - Include the source link next to each claim (e.g., [Source](URL)).
             - If you are uncertain about a claim, exclude it or mark it clearly.
             - No confidential info. No personal data.
@@ -142,14 +143,26 @@ def summarize_with_openai(selected_items):
         ]
     }
     headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
-    resp = requests.post(OPENAI_API_URL, headers=headers, data=json.dumps(body), timeout=60)
-    if resp.status_code >= 300:
-        die(f"OpenAI API error {resp.status_code}: {resp.text[:500]}")
-    data = resp.json()
     try:
+        resp = requests.post(OPENAI_API_URL, headers=headers, data=json.dumps(body), timeout=60)
+    except requests.exceptions.RequestException as e:
+        die(f"OpenAI API network error: {e}")
+    
+    if resp.status_code >= 300:
+        try:
+            error_data = resp.json()
+            error_msg = error_data.get('error', {}).get('message', resp.text[:500])
+        except:
+            error_msg = resp.text[:500]
+        die(f"OpenAI API error {resp.status_code}: {error_msg}")
+    
+    try:
+        data = resp.json()
         content = data["choices"][0]["message"]["content"]
-    except Exception:
-        die(f"Unexpected OpenAI response shape: {json.dumps(data)[:800]}")
+    except KeyError as e:
+        die(f"Unexpected OpenAI response structure - missing field: {e}")
+    except Exception as e:
+        die(f"Error parsing OpenAI response: {e} | Response: {resp.text[:800]}")
     return content.strip()
 
 def enforce_quality(md_text: str):

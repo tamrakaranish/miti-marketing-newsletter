@@ -23,15 +23,26 @@ jobs:
   publish:
     runs-on: ubuntu-latest
     steps:
-      - name: Display environment info
+      - name: Determine target environment
+        id: env
         run: |
           if [ "${{ github.event_name }}" = "push" ]; then
-            echo "🚀 Auto-triggered from merge → Publishing to: TEST environment"
-            echo "📱 Slack channel: #ai-publish-test"
-            echo "ℹ️  To publish to production, manually run this workflow and select 'production'"
+            # Check if commit message contains environment tag
+            COMMIT_MSG="${{ github.event.head_commit.message }}"
+            if echo "$COMMIT_MSG" | grep -q "\[env:test\]"; then
+              echo "environment=test" >> $GITHUB_OUTPUT
+              echo "🧪 Auto-triggered with [env:test] → Publishing to: TEST"
+              echo "📱 Slack channel: ${{ vars.SLACK_CHANNEL_TEST || '#ai-publish-test' }}"
+            else
+              echo "environment=production" >> $GITHUB_OUTPUT
+              echo "🚀 Auto-triggered from PR merge → Publishing to: PRODUCTION"
+              echo "📱 Slack channel: ${{ vars.SLACK_CHANNEL_PRODUCTION || '#mitigram-ai' }}"
+              echo "✅ PR was reviewed and approved, ready for production"
+            fi
           else
-            echo "🚀 Publishing to: ${{ inputs.environment || 'test' }} environment"
-            echo "📱 Slack channel: ${{ inputs.environment == 'production' && '#mitigram-ai' || '#ai-publish-test' }}"
+            echo "environment=${{ inputs.environment || 'test' }}" >> $GITHUB_OUTPUT
+            echo "🚀 Manual trigger → Publishing to: ${{ inputs.environment || 'test' }} environment"
+            echo "📱 Slack channel: ${{ inputs.environment == 'production' && (vars.SLACK_CHANNEL_PRODUCTION || '#mitigram-ai') || (vars.SLACK_CHANNEL_TEST || '#ai-publish-test') }}"
           fi
       
       - name: Checkout
@@ -42,8 +53,13 @@ jobs:
         run: |
           # Delete any newsletter/draft-* branches that have been merged
           echo "🧹 Cleaning up old newsletter branches..."
-          git branch -r | grep "origin/newsletter/draft-" | sed 's/origin\///' | xargs -I {} git push origin --delete {} || true
-          echo "✅ Branch cleanup completed"
+          BRANCHES=$(git branch -r | grep "origin/newsletter/draft-" | sed 's/origin\///' || true)
+          if [ -n "$BRANCHES" ]; then
+            echo "$BRANCHES" | xargs -I {} git push origin --delete {} || true
+            echo "✅ Deleted $(echo "$BRANCHES" | wc -l) newsletter branches"
+          else
+            echo "✅ No newsletter branches to clean up"
+          fi
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -185,7 +201,7 @@ jobs:
       - name: Post newsletter to Slack with Confluence link
         env:
           SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
-          SLACK_CHANNEL: ${{ github.event_name == 'push' && '#ai-publish-test' || (inputs.environment == 'production' && '#mitigram-ai' || '#ai-publish-test') }}
+          SLACK_CHANNEL: ${{ steps.env.outputs.environment == 'production' && (vars.SLACK_CHANNEL_PRODUCTION || '#mitigram-ai') || (vars.SLACK_CHANNEL_TEST || '#ai-publish-test') }}
           FILE_SLACK: ${{ steps.find.outputs.file_slack }}
         shell: bash
         run: |
