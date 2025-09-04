@@ -39,6 +39,9 @@ OPENAI_MODEL = "gpt-5-mini"   # upgraded model for better analysis
 MAX_WORDS = 400
 REQUIRED_MIN_LINKS = 3
 
+# Custom message section (can be edited for special announcements)
+CUSTOM_MESSAGE = ""
+
 # ----------------------------
 # Helpers
 # ----------------------------
@@ -195,16 +198,37 @@ BULLET_MD = re.compile(r"^\s*-\s+")
 
 def add_emoji_for_heading(title: str) -> str:
     t = title.strip().lower()
+    
+    # Main newsletter sections
     if "ai in trade finance" in t:
-        return f"📢 {title}"
+        return f"🚀 {title}"
     if "tip of the week" in t:
         return f"💡 {title}"
     if "internal spotlight" in t:
         return f"🔍 {title}"
     if "quick hits" in t:
         return f"⚡ {title}"
+    if "what this means for us" in t:
+        return f"🎯 {title}"
+    if "cta" in t or "call to action" in t or "pilots" in t or "polls" in t:
+        return f"📋 {title}"
+    
+    # Newsletter header
     if "mitimind" in t or "newsletter" in t:
         return f"🗞️ {title}"
+    
+    # Trade finance topics
+    if any(word in t for word in ["trade", "finance", "payment", "banking", "swift"]):
+        return f"💰 {title}"
+    
+    # AI/Tech topics  
+    if any(word in t for word in ["ai", "artificial intelligence", "machine learning", "llm", "model"]):
+        return f"🤖 {title}"
+    
+    # Business/Strategy topics
+    if any(word in t for word in ["strategy", "business", "product", "innovation"]):
+        return f"📈 {title}"
+    
     return title
 
 def convert_md_to_slack(markdown: str) -> str:
@@ -223,20 +247,47 @@ def convert_md_to_slack(markdown: str) -> str:
         out.append(ln)
     return "\n".join(out)
 
+def add_emojis_to_markdown(markdown: str) -> str:
+    """Add emojis to Markdown headings."""
+    lines = markdown.splitlines()
+    out = []
+    for ln in lines:
+        m = HEADER_MD.match(ln)
+        if m:
+            level = m.group(1)  # ### or ## etc
+            title = m.group(2).strip()
+            # Add emoji to title, then reconstruct the heading
+            emoji_title = add_emoji_for_heading(title)
+            out.append(f"{level} {emoji_title}")
+        else:
+            out.append(ln)
+    return "\n".join(out)
+
 # ---------- Write outputs ----------
 def write_outputs(md_body: str):
     OUTDIR.mkdir(parents=True, exist_ok=True)
-    header = f"# MitiMind – {DATE}\n\n"
-    md_full = header + md_body + "\n\n— Auto‑draft by AI agent, please contact the EMs for feedback.\n"
+    header = f"# 🗞️ MitiMind – {DATE}\n\n"
+    
+    # Add custom message if defined
+    custom_message_section = ""
+    if CUSTOM_MESSAGE and CUSTOM_MESSAGE.strip():
+        # Add visual separators around the message
+        custom_message_section = f"---\n\n{CUSTOM_MESSAGE.strip()}\n\n---\n\n"
+    
+    # Add emojis to headings in the body content
+    md_body_with_emojis = add_emojis_to_markdown(md_body)
+    
+    md_full = header + custom_message_section + md_body_with_emojis + "\n\n— Auto‑draft by AI agent, please contact the EMs for feedback.\n"
+    
     # Markdown for PR/Confluence
     with OUT_MD.open("w", encoding="utf-8") as f:
         f.write(md_full)
     print(f"[OK] Markdown written to {OUT_MD}")
-    # Slack-friendly text
+    
+    # Slack-friendly text (emojis already applied via convert_md_to_slack)
     slack_text = convert_md_to_slack(md_full)
     with OUT_SLACK.open("w", encoding="utf-8") as f:
         f.write(slack_text)
-        f.write("\n\n_Read the full issue in Confluence once published._")
     print(f"[OK] Slack text written to {OUT_SLACK}")
 
 # ----------------------------
