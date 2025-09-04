@@ -1,21 +1,21 @@
 *🗞️ MitiMind – 2025-09-04*
 
 *🚀 AI in Trade Finance*
-HyPV-LEAD presents a proactive, lead-time anomaly-detection framework for cryptocurrency transactions that reports a PR‑AUC of 0.9624 on Bitcoin data by combining window-horizon modeling, Peak‑Valley sampling, and hyperbolic embeddings <https://arxiv.org/abs/2509.03260|Source>.  
-What this means for us: the paper demonstrates that shifting from reactive flags to early‑warning signals is feasible on public blockchain data; we should assess whether similar structural‑temporal approaches can improve AML/monitoring for trade‑related payment rails (using synthetic/public data first).
+HyPV-LEAD introduces a data-driven early-warning framework for cryptocurrency anomalies that integrates window-horizon modeling, Peak–Valley sampling, and hyperbolic embeddings; the paper reports a PR-AUC of 0.9624 on large-scale Bitcoin transaction tests <https://arxiv.org/abs/2509.03260|Source>.  
+What this means for us: the paper demonstrates a shift from reactive anomaly flags to lead-time alerts. We should assess whether structural–temporal models and sampling strategies from HyPV-LEAD can improve early detection of crypto-linked risk signals in our transaction pipelines while maintaining evaluation on sanitized or synthetic data <https://arxiv.org/abs/2509.03260|Source>.
 
 *💡 Tip of the Week*
-If you run LLMs in inference-heavy flows, consider adaptive KV-cache compression: GVote claims ~2× memory reduction while maintaining accuracy by predicting future query attention and adapting cache budget automatically <https://arxiv.org/abs/2509.03136|Source>. For us, this can reduce hosting cost or enable longer-context features without manually tuning cache budgets.
+Adaptive KV-cache compression (GVote) reduces KV-cache memory footprint without a manually set budget and reports ≈2× memory reduction while keeping accuracy comparable across benchmarks <https://arxiv.org/abs/2509.03136|Source>. If you operate LLM inference for chatbots or document processing, try monitoring KV-cache growth and experiment with adaptive compression to lower instance costs and reduce OOM risk during long-session decoding <https://arxiv.org/abs/2509.03136|Source>.
 
 *🔍 Internal Spotlight*
-No spotlight submitted this week — suggested safe experiment: run a 2–4 week proof‑of‑concept using public blockchain data (e.g., Bitcoin) and synthetic trade‑payment streams to evaluate an early‑warning model inspired by HyPV‑LEAD. Objectives: measure lead time, precision at high recall, and integration complexity. Use only public/synthetic data and document metrics and risks <https://arxiv.org/abs/2509.03260|Source>.
+No spotlight submissions this week — suggested safe experiment: run a 4-week pilot that applies HyPV-LEAD’s PV sampling and window-horizon evaluation on a small, anonymized sample of transaction metadata (no PII), measuring lead time, precision, and recall against our current rules-based alerts. Use synthetic or tokenized data where possible and keep raw transaction identifiers masked <https://arxiv.org/abs/2509.03260|Source>.
 
 *⚡ Quick Hits*
-• OpenAI + research partners published a framework analyzing LLM misuse for disinformation and mitigation strategies (policy + technical controls) <https://openai.com/index/forecasting-misuse|Source>.  
-• Study finds LLM-based agents push users toward more popular choices and can reduce both interpersonal distinctiveness and intrapersonal diversity <https://arxiv.org/abs/2509.02910|Source>.  
-• ANNIE paper shows embodied AI (vision‑language‑action agents) introduces new physical safety attack surfaces with attack success >50% in their benchmark, underscoring security needs for any robotics integration <https://arxiv.org/abs/2509.03383|Source>.
+• New arXiv study shows adversarial attacks on embodied AI can cause unsafe physical actions, highlighting risk in deployed robotics and VLA stacks <https://arxiv.org/abs/2509.03383|Source>.  
+• Survey: Human–AI collaboration with foundation models requires human-centered design, not just stronger models — relevant for UX of agent features we ship <https://arxiv.org/abs/2403.04931|Source>.  
+• Tap Global integrated an open-banking gateway via tell.money — another signal that open-banking connectivity is expanding in payments ecosystems <https://www.finextra.com/pressarticle/106917/tap-global-implements-open-banking-gateway-with-tellmoney|Source>.
 
 *📋 CTA for pilots/polls*
-Interested in joining a 2–4 week HyPV‑LEAD POC or evaluating GVote on our LLM stack? Reply to this email with "pilot: anomalies" or "pilot: kvcache" (deadline: Friday) — we'll collate volunteers and scope next steps.
+Interested in joining the anomaly early-warning or KV-cache pilot? Reply to this message or add your name in #ai-pilots by 2025-09-12. Indicate which pilot (HyPV-LEAD evaluation or KV-cache test) and available hours.
 
 — Auto‑draft by AI agent, please contact the EMs for feedback.
