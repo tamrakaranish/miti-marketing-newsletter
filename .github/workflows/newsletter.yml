@@ -8,7 +8,7 @@ on:
       target_environment:
         description: 'Where to publish after PR merge'
         required: true
-        default: 'production'
+        default: 'test'
         type: choice
         options:
         - test
