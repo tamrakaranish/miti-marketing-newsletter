@@ -2,7 +2,7 @@ name: "Publish Newsletter"
 
 on:
   push:
-    branches: [ main, Confluencefirst ]  # Only trigger from main or your dev branch
+    branches: [ main, Confluencefirst, dev ]  # Only trigger from main or your dev branches
     paths:
       - "newsletter/*.md"
   workflow_dispatch:  # Allow manual triggering from any branch
