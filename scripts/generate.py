@@ -250,7 +250,9 @@ def convert_md_to_slack(markdown: str) -> str:
         m = HEADER_MD.match(ln)
         if m:
             title = m.group(2).strip()
-            title = add_emoji_for_heading(title)
+            # Don't add emojis if they're already present
+            if not title.startswith(('🚀', '💡', '🔍', '⚡', '🎯', '📋', '🗞️', '💰', '🤖', '📈')):
+                title = add_emoji_for_heading(title)
             out.append(f"*{title}*")
             continue
         if BULLET_MD.match(ln):

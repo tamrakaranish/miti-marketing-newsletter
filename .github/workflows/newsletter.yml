@@ -5,15 +5,10 @@ on:
     - cron: "0 6 * * 3"         # Wednesdays 07:00 CET (06:00 UTC)
   workflow_dispatch:
     inputs:
-      commit_directly:
-        description: 'Skip PR and commit directly to current branch'
-        required: false
-        default: 'false'
-        type: boolean
       target_environment:
-        description: 'Target environment for testing (only affects direct commits)'
-        required: false
-        default: 'test'
+        description: 'Where to publish after PR merge'
+        required: true
+        default: 'production'
         type: choice
         options:
         - test
@@ -54,36 +49,23 @@ jobs:
         run: |
           python scripts/generate.py
 
-      # Option 1: Direct commit (for testing)  
-      - name: Commit newsletter directly
-        if: ${{ fromJSON(inputs.commit_directly || 'false') == true }}
-        run: |
-          git config --global user.name "AI Newsletter Bot"
-          git config --global user.email "ai-newsletter@actions.github.com"
-          git add newsletter/
-          if git diff --staged --quiet; then
-            echo "No changes to commit"
-          else
-            # Include environment in commit message for publish workflow
-            ENV_TAG="${{ inputs.target_environment || 'production' }}"
-            git commit -m "Add newsletter $(date +%Y-%m-%d) [env:$ENV_TAG]"
-            git push
-          fi
-
-      # Option 2: Create PR (default for scheduled runs)
-      - name: Create PR  
-        if: ${{ fromJSON(inputs.commit_directly || 'false') != true }}
+      - name: Create PR
         uses: peter-evans/create-pull-request@v6
         with:
           token: ${{ secrets.PR_TOKEN }}     # <— use PAT
           branch: newsletter/draft-${{ github.run_id }}
           delete-branch: true
-          title: "AI Newsletter draft – ${{ github.run_id }} [ai-agent]"
+          title: "AI Newsletter draft – ${{ github.run_id }} [ai-agent] → ${{ github.event_name == 'schedule' && 'production' || inputs.target_environment || 'production' }}"
           body: |
             Auto-generated draft for review.
+            **Target Environment:** ${{ github.event_name == 'schedule' && 'production' || inputs.target_environment || 'production' }}
+            **Cron Generated:** ${{ github.event_name == 'schedule' }}
+            
             Source: newsletter/<date>.md
             Please verify sources, claims, and CTA.
-          commit-message: "chore(newsletter): add draft issue"
+            
+            When merged, this will publish to the **${{ github.event_name == 'schedule' && 'production' || inputs.target_environment || 'production' }}** Slack channel.
+          commit-message: "chore(newsletter): add draft issue [env:${{ github.event_name == 'schedule' && 'production' || inputs.target_environment || 'production' }}]"
           labels: |
             newsletter
             ai

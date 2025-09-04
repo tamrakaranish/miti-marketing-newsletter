@@ -8,13 +8,17 @@ on:
   workflow_dispatch:  # Allow manual triggering from any branch
     inputs:
       environment:
-        description: 'Choose environment'
+        description: 'Choose environment (overrides PR environment)'
         required: true
         default: 'test'
         type: choice
         options:
         - test
         - production
+      newsletter_date:
+        description: 'Newsletter date (YYYY-MM-DD) or leave empty for latest'
+        required: false
+        type: string
 
 permissions:
   contents: write  # Need write permissions to delete branches
@@ -26,8 +30,13 @@ jobs:
       - name: Determine target environment
         id: env
         run: |
-          if [ "${{ github.event_name }}" = "push" ]; then
-            # Check if commit message contains environment tag
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            # Manual trigger - use input environment
+            echo "environment=${{ inputs.environment }}" >> $GITHUB_OUTPUT
+            echo "🎯 Manual trigger → Publishing to: ${{ inputs.environment }} environment"
+            echo "📱 Slack channel: ${{ inputs.environment == 'production' && (vars.SLACK_CHANNEL_PRODUCTION || '#mitigram-ai') || (vars.SLACK_CHANNEL_TEST || '#ai-publish-test') }}"
+          else
+            # Auto-triggered by push - read from commit message
             COMMIT_MSG="${{ github.event.head_commit.message }}"
             if echo "$COMMIT_MSG" | grep -q "\[env:test\]"; then
               echo "environment=test" >> $GITHUB_OUTPUT
@@ -39,64 +48,96 @@ jobs:
               echo "📱 Slack channel: ${{ vars.SLACK_CHANNEL_PRODUCTION || '#mitigram-ai' }}"
               echo "✅ PR was reviewed and approved, ready for production"
             fi
-          else
-            echo "environment=${{ inputs.environment || 'test' }}" >> $GITHUB_OUTPUT
-            echo "🚀 Manual trigger → Publishing to: ${{ inputs.environment || 'test' }} environment"
-            echo "📱 Slack channel: ${{ inputs.environment == 'production' && (vars.SLACK_CHANNEL_PRODUCTION || '#mitigram-ai') || (vars.SLACK_CHANNEL_TEST || '#ai-publish-test') }}"
           fi
       
+      - name: Validate Slack channel configuration
+        run: |
+          ENV="${{ steps.env.outputs.environment }}"
+          if [ "$ENV" = "production" ]; then
+            CHANNEL="${{ vars.SLACK_CHANNEL_PRODUCTION || '#mitigram-ai' }}"
+            echo "✅ Production channel: $CHANNEL"
+            if [ "$CHANNEL" = "#mitigram-ai" ]; then
+              echo "⚠️  Using fallback production channel. Consider setting SLACK_CHANNEL_PRODUCTION variable."
+            fi
+          else
+            CHANNEL="${{ vars.SLACK_CHANNEL_TEST || '#ai-publish-test' }}"
+            echo "✅ Test channel: $CHANNEL"
+            if [ "$CHANNEL" = "#ai-publish-test" ]; then
+              echo "⚠️  Using fallback test channel. Consider setting SLACK_CHANNEL_TEST variable."
+            fi
+          fi
+
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Cleanup newsletter branches
-        shell: bash
-        run: |
-          # Delete any newsletter/draft-* branches that have been merged
-          echo "🧹 Cleaning up old newsletter branches..."
-          BRANCHES=$(git branch -r | grep "origin/newsletter/draft-" | sed 's/origin\///' || true)
-          if [ -n "$BRANCHES" ]; then
-            echo "$BRANCHES" | xargs -I {} git push origin --delete {} || true
-            echo "✅ Deleted $(echo "$BRANCHES" | wc -l) newsletter branches"
-          else
-            echo "✅ No newsletter branches to clean up"
-          fi
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
 
-      - name: Locate newsletter files from this push (prefer exact diff)
+      - name: Locate newsletter files
         id: find
         shell: bash
         run: |
           set -euo pipefail
-      
-          echo "== Changed files in this push =="
-          # Try to get changed files, fallback to latest if it fails
-          if [ -n "${{ github.event.before }}" ] && [ "${{ github.event.before }}" != "0000000000000000000000000000000000000000" ]; then
-            CHANGED="$(git diff --name-only "${{ github.event.before }}" "${{ github.sha }}" 2>/dev/null || echo "")"
+          
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ -n "${{ inputs.newsletter_date }}" ]; then
+            # Manual trigger with specific date
+            TARGET_DATE="${{ inputs.newsletter_date }}"
+            
+            # Validate date format
+            if ! echo "$TARGET_DATE" | grep -qE '^[0-9]{4}-[0-9]{2}-[0-9]{2}$'; then
+              echo "❌ Invalid date format: '$TARGET_DATE'"
+              echo "Expected format: YYYY-MM-DD (e.g., 2025-01-06)"
+              exit 1
+            fi
+            
+            MD="newsletter/${TARGET_DATE}.md"
+            TXT="newsletter/${TARGET_DATE}_slack.txt"
+            
+            if [ ! -f "$MD" ]; then
+              echo "❌ Newsletter not found: $MD"
+              echo ""
+              echo "📋 Available newsletters:"
+              ls -1 newsletter/*.md 2>/dev/null | grep -E '/[0-9]{4}-[0-9]{2}-[0-9]{2}\.md$' | sort | tail -5 || echo "None found"
+              echo ""
+              echo "💡 Tip: Leave newsletter_date empty to use the latest newsletter"
+              exit 1
+            fi
+            
+            echo "🎯 Using specified newsletter: $MD"
           else
-            CHANGED=""
+            # Auto-triggered or manual without date - find from push or use latest
+            echo "== Finding newsletter from push or latest =="
+            
+            # Try to get changed files, fallback to latest if it fails
+            if [ -n "${{ github.event.before }}" ] && [ "${{ github.event.before }}" != "0000000000000000000000000000000000000000" ]; then
+              CHANGED="$(git diff --name-only "${{ github.event.before }}" "${{ github.sha }}" 2>/dev/null || echo "")"
+            else
+              CHANGED=""
+            fi
+            echo "Changed files: $CHANGED"
+        
+            # Pick date-named newsletters touched by this push
+            MAPFILE=()
+            while IFS= read -r f; do
+              [[ "$f" =~ ^newsletter/[0-9]{4}-[0-9]{2}-[0-9]{2}\.md$ ]] && MAPFILE+=("$f")
+            done < <(printf '%s\n' "$CHANGED")
+        
+            if [ "${#MAPFILE[@]}" -eq 0 ]; then
+              echo "No date-named newsletter in this push, falling back to latest by filename…"
+              MD="$(ls -1 newsletter/*.md 2>/dev/null | grep -E '/[0-9]{4}-[0-9]{2}-[0-9]{2}\.md$' | sort | tail -n 1 || true)"
+              [ -z "${MD:-}" ] && { echo "No newsletter files found"; exit 1; }
+            else
+              # If multiple were touched, take the newest by filename
+              MD="$(printf '%s\n' "${MAPFILE[@]}" | sort | tail -n 1)"
+            fi
+            
+            TXT="${MD%.md}_slack.txt"
           fi
-          echo "$CHANGED"
       
-          # Pick date-named newsletters touched by this push
-          MAPFILE=()
-          while IFS= read -r f; do
-            [[ "$f" =~ ^newsletter/[0-9]{4}-[0-9]{2}-[0-9]{2}\.md$ ]] && MAPFILE+=("$f")
-          done < <(printf '%s\n' "$CHANGED")
-      
-          if [ "${#MAPFILE[@]}" -eq 0 ]; then
-            echo "No date-named newsletter in this push, falling back to latest by filename…"
-            MD="$(ls -1 newsletter/*.md 2>/dev/null | grep -E '/[0-9]{4}-[0-9]{2}-[0-9]{2}\.md$' | sort | tail -n 1 || true)"
-            [ -z "${MD:-}" ] && { echo "No newsletter files found"; exit 1; }
-          else
-            # If multiple were touched, take the newest by filename
-            MD="$(printf '%s\n' "${MAPFILE[@]}" | sort | tail -n 1)"
-          fi
-      
-          SLACK="${MD%.md}_slack.txt"
+          # Set output variables
+          SLACK="$TXT"
           echo "Selected MD: $MD"
           [ -f "$SLACK" ] && echo "Matching Slack exists: $SLACK" || echo "Slack will be generated: $SLACK"
       
@@ -232,4 +273,17 @@ jobs:
           OK="$(echo "$BODY" | jq -r '.ok // false')"
           if [ "$OK" != "true" ]; then
             echo "Slack post failed"; exit 1
+          fi
+          
+      - name: Cleanup newsletter branches
+        shell: bash
+        run: |
+          # Delete any newsletter/draft-* branches that have been merged (run after publishing)
+          echo "🧹 Cleaning up old newsletter branches..."
+          BRANCHES=$(git branch -r | grep "origin/newsletter/draft-" | sed 's/origin\///' || true)
+          if [ -n "$BRANCHES" ]; then
+            echo "$BRANCHES" | xargs -I {} git push origin --delete {} || true
+            echo "✅ Deleted $(echo "$BRANCHES" | wc -l) newsletter branches"
+          else
+            echo "✅ No newsletter branches to clean up"
           fi
