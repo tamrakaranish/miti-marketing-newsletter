@@ -212,18 +212,16 @@ def summarize_with_openai(selected_items):
         die(f"Error parsing OpenAI response: {e} | Response: {resp.text[:800]}")
     return content.strip()
 
-def enforce_quality(md_text: str, exclude_custom_message: bool = False):
-    # If we need to exclude custom message, remove it from word count
-    text_for_counting = md_text
-    if exclude_custom_message and CUSTOM_MESSAGE and CUSTOM_MESSAGE.strip():
-        # Remove the custom message section including the separators
-        custom_message_with_separators = f"---\n\n{CUSTOM_MESSAGE.strip()}\n\n---\n\n"
-        text_for_counting = text_for_counting.replace(custom_message_with_separators, "")
+def enforce_quality(md_text: str):
+    # Adjust word limit based on whether we have a custom message
+    word_limit = MAX_WORDS
+    if CUSTOM_MESSAGE and CUSTOM_MESSAGE.strip():
+        # Add buffer for custom message (approximately 150 words)
+        word_limit = MAX_WORDS + 200
     
-    words = re.findall(r"\b\w+\b", text_for_counting)
-    if len(words) > MAX_WORDS:
-        suffix = " (excluding custom message)" if exclude_custom_message else ""
-        die(f"Draft too long ({len(words)} words{suffix}). Keep under {MAX_WORDS} words.")
+    words = re.findall(r"\b\w+\b", md_text)
+    if len(words) > word_limit:
+        die(f"Draft too long ({len(words)} words). Keep under {word_limit} words.")
     
     links = re.findall(r"https?://\S+", md_text)
     if len(links) < REQUIRED_MIN_LINKS:
@@ -330,9 +328,9 @@ def write_outputs(md_body: str):
     
     md_full = header + custom_message_section + md_body_with_emojis + "\n\n— Auto‑draft by AI agent, please contact the EMs for feedback.\n"
     
-    # Quality check on full assembled text, excluding custom message from word count
+    # Quality check on full assembled text
     print("[i] Enforcing quality gates on assembled newsletter…")
-    enforce_quality(md_full, exclude_custom_message=True)
+    enforce_quality(md_full)
     
     # Markdown for PR/Confluence
     with OUT_MD.open("w", encoding="utf-8") as f:
