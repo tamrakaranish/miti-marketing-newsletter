@@ -151,8 +151,9 @@ def summarize_with_openai(selected_items):
 
     system_msg = (
         "You produce a short internal AI newsletter for a trade-finance SaaS company. "
-        "Your audience includes product managers, engineers, and business stakeholders who may not be familiar with all AI/fintech concepts. "
-        "When covering technical topics, provide brief educational context to help readers understand the significance. "
+        "Your audience includes executives, product managers, sales, marketing, customer success, and engineers - many are NOT technical. "
+        "Make content accessible to ALL roles by explaining business impact, not just technical details. "
+        "Focus on practical implications, timelines, and resource requirements. Avoid heavy jargon. "
         "Be factual. Include source links next to claims. Avoid speculation and personal data."
     )
     user_payload = {
@@ -161,29 +162,31 @@ def summarize_with_openai(selected_items):
             Write EXACTLY 350-400 words total using proper Markdown headings for sections:
             
             ## Market Intelligence
-            (1-2 items) Major AI developments affecting fintech/trade finance. Focus on: new AI capabilities, regulatory changes, competitive moves, or technology breakthroughs that could impact our product roadmap.
+            (1-2 items) Major AI/fintech developments that could impact our trade finance business. Focus on: customer needs, competitive threats, regulatory changes, or new market opportunities. Explain WHY this matters to our business, not just WHAT happened.
             
-            ## What This Means for Us
-            Translate the market intelligence into specific implications for our trade finance SaaS platform. Consider: product opportunities, technical feasibility, competitive positioning, or regulatory compliance needs.
+            ## Business Impact
+            Translate developments into clear business implications. Include: revenue opportunities, cost savings, competitive risks, customer experience improvements, or compliance requirements. Use plain language - avoid technical jargon.
             
-            ## Implementation Focus
-            (Weekly insight) Practical advice for implementing AI in trade finance products. Topics could include: integration patterns, data requirements, risk management, customer adoption strategies, or technical best practices.
+            ## What Different Teams Should Know
+            Practical implications for different roles: Sales (customer conversations), Marketing (positioning), Product (roadmap priorities), Customer Success (client questions), Engineering (technical requirements). Make it actionable for non-technical staff.
             
-            ## Quick Hits
-            (3 bullet points) Brief updates on: AI tools/frameworks, regulatory updates, competitor moves, or industry partnerships relevant to trade finance AI.
+            ## Market Pulse
+            (3 bullet points) Brief updates on: competitor moves, customer trends, regulatory updates, or partnership opportunities in trade finance AI. Focus on business relevance, not technical details.
             
-            ## Next Steps
-            Suggest 1-2 specific actions the team should consider: research topics, pilot opportunities, vendor evaluations, or strategic discussions based on this week's intelligence.
+            ## Recommended Actions
+            1-2 specific, time-bound actions with clear owners: sales enablement needs, customer research, competitive analysis, partnership exploration, or product evaluations. Include estimated effort and timeline.
 
             Rules:
             - DO NOT include a title or header - the title is already provided.
             - Use proper Markdown headings with ## for each section
             - Start directly with the first section content
             - Include the source link next to each claim (e.g., [Source](URL)).
-            - Focus on business impact and actionability for a trade finance SaaS company
-            - When mentioning technical concepts, AI models, or industry terms, provide brief context (e.g., "LLMs (Large Language Models, like ChatGPT)" or "KYC (Know Your Customer compliance)")
-            - Explain why developments matter, not just what happened
-            - Be specific about implications rather than generic
+            - Focus on business impact and practical actions for ALL departments, not just engineering
+            - Use plain language - explain technical terms in business context (e.g., "AI monitoring = quality control for automated decisions")
+            - Include specific timelines, effort estimates, and responsible teams for actions
+            - Prioritize customer impact, revenue implications, and competitive positioning
+            - Avoid academic research unless it has immediate business relevance
+            - Make content useful for sales calls, customer conversations, and strategic decisions
             - If uncertain about a claim, exclude it or mark it clearly
             - No confidential info. No personal data.
             - CRITICAL: Keep total word count between 350-400 words. Be concise and focused.
@@ -235,7 +238,7 @@ def enforce_quality(md_text: str):
     links = re.findall(r"https?://\S+", md_text)
     if len(links) < REQUIRED_MIN_LINKS:
         die(f"Draft contains too few links ({len(links)}). Require at least {REQUIRED_MIN_LINKS} source URLs.")
-    for h in ("Market Intelligence", "What This Means for Us", "Quick Hits"):
+    for h in ("Market Intelligence", "Business Impact", "What Different Teams Should Know"):
         if h.lower() not in md_text.lower():
             die(f"Draft missing required section heading: '{h}'.")
 
@@ -250,6 +253,16 @@ def add_emoji_for_heading(title: str) -> str:
     # Main newsletter sections
     if "market intelligence" in t:
         return f"📊 {title}"
+    if "business impact" in t:
+        return f"💰 {title}"
+    if "what different teams should know" in t:
+        return f"👥 {title}"
+    if "market pulse" in t:
+        return f"⚡ {title}"
+    if "recommended actions" in t:
+        return f"📋 {title}"
+        
+    # Legacy sections (for compatibility)
     if "what this means for us" in t:
         return f"🎯 {title}"
     if "implementation focus" in t:
