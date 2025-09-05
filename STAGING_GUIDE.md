@@ -1,20 +1,40 @@
 # 🚀 Newsletter Staging Guide
 
-A beginner-friendly guide to using test vs production environments for your AI newsletter.
+A beginner-friendly guide to using the three-mode newsletter system: Scheduled, Manual Production, and Test modes.
 
-## 📋 How It Works
+## 📋 How the Three Modes Work
+
+### **⏰ Scheduled Mode (Auto-Publish)**
+- **Trigger**: Automatic every Wednesday 7:00 CET
+- **File**: `newsletter/2025-01-15.md` 
+- **Behavior**: Auto-publishes to production when PR merged
+- **Best for**: Regular weekly newsletters
+
+### **🚀 Manual Production Mode (Manual Control)**
+- **Trigger**: Manual with "Production Mode" checkbox ✅
+- **File**: `newsletter/2025-01-15-manual-HHMMSS-123.md`
+- **Behavior**: Requires manual publish workflow
+- **Best for**: Emergency posts, special announcements
+
+### **🧪 Test Mode (Safe Experimentation)**
+- **Trigger**: Manual without "Production Mode" (default)
+- **File**: `newsletter/2025-01-15-test-HHMMSS-123.md`
+- **Behavior**: Never auto-publishes, manual control only
+- **Best for**: Testing, experiments, training
+
+## 🎯 Environment Targeting
 
 ### **Test Environment**
-- **Slack Channel**: `#ai-publish-test`
+- **Slack Channel**: Configurable via `SLACK_CHANNEL_TEST` GitHub Variable
 - **Purpose**: Safe testing, drafts, experiments
 - **Who sees it**: Only you and selected team members
 
 ### **Production Environment**  
-- **Slack Channel**: `#mitigram-ai`
+- **Slack Channel**: Configurable via `SLACK_CHANNEL_PRODUCTION` GitHub Variable
 - **Purpose**: Live newsletters for the whole company
 - **Who sees it**: Everyone in the company
 
-### **Confluence**: Both environments save to the same space (you can separate this later if needed)
+### **Confluence**: Both environments save to the same space with different page titles
 
 ## 🎯 How to Use
 
@@ -22,20 +42,28 @@ A beginner-friendly guide to using test vs production environments for your AI n
 1. **Wednesday**: AI generates newsletter → Creates PR
 2. **Review & Merge PR** → Auto-publishes to **PRODUCTION**
 
-### **Option 2: Testing Newsletter Generation**
+### **🚨 Emergency Production Newsletter**
 1. **Go to GitHub** → Actions → "Generate AI Newsletter"
 2. **Click "Run workflow"**
-3. **Check "Skip PR and commit directly"**
-4. **Choose target environment**:
-   - `test` → Will publish to `#ai-publish-test`
-   - `production` → Will publish to `#mitigram-ai`
-5. **Click "Run workflow"**
+3. **✅ Check "Generate production-ready newsletter"**
+4. **Review PR** → Merge (safe, won't auto-publish)
+5. **Actions** → "Publish Newsletter"
+6. **Choose environment**: `production` → Publish
 
-### **Option 3: Manual Publishing Only**
-1. **Go to GitHub** → Actions → "Publish Newsletter"
+### **🧪 Testing & Experimentation**
+1. **Go to GitHub** → Actions → "Generate AI Newsletter"
 2. **Click "Run workflow"**
-3. **Choose environment**: `test` or `production`
-4. **Click "Run workflow"**
+3. **❌ Leave "Production Mode" unchecked** (default)
+4. **Review PR** → Merge (safe, won't auto-publish)
+5. **Actions** → "Publish Newsletter"
+6. **Choose environment**: `test` → Publish safely
+
+### **🔍 Newsletter Discovery & Publishing**
+1. **Go to GitHub** → Actions → "Publish Newsletter"
+2. **✅ Check "Just list available newsletters"** → See all files
+3. **Copy date** of newsletter you want to publish
+4. **Run publish workflow again** with that specific date
+5. **Choose environment**: `test` or `production`
 
 ## 📝 Recommended Workflow
 
