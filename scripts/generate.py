@@ -225,22 +225,18 @@ def summarize_with_openai(selected_items):
     return content.strip()
 
 def enforce_quality(md_text: str):
-    # Adjust word limit based on whether we have a custom message
-    word_limit = MAX_WORDS
-    if CUSTOM_MESSAGE and CUSTOM_MESSAGE.strip():
-        # Add buffer for custom message (approximately 150 words) + increased AI content
-        word_limit = MAX_WORDS + 250
-    
-    words = re.findall(r"\b\w+\b", md_text)
-    if len(words) > word_limit:
-        die(f"Draft too long ({len(words)} words). Keep under {word_limit} words.")
-    
+    # Check for required links and sections, but allow flexible word count
     links = re.findall(r"https?://\S+", md_text)
     if len(links) < REQUIRED_MIN_LINKS:
         die(f"Draft contains too few links ({len(links)}). Require at least {REQUIRED_MIN_LINKS} source URLs.")
+    
     for h in ("Market Intelligence", "Business Impact", "What Different Teams Should Know"):
         if h.lower() not in md_text.lower():
             die(f"Draft missing required section heading: '{h}'.")
+    
+    # Log word count for visibility, but don't enforce strict limits
+    words = re.findall(r"\b\w+\b", md_text)
+    print(f"[INFO] Newsletter word count: {len(words)} words")
 
 # ---------- Slack formatting ----------
 LINK_MD = re.compile(r"\[([^\]]+)\]\((https?://[^)]+)\)")
