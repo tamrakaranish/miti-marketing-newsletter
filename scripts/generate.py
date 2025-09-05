@@ -40,7 +40,21 @@ MAX_WORDS = 400
 REQUIRED_MIN_LINKS = 3
 
 # Custom message section (can be edited for special announcements)
-CUSTOM_MESSAGE = ""
+CUSTOM_MESSAGE = """
+🎉 **Major Newsletter Upgrades - Issue #2**
+
+After our first newsletter, we've already implemented massive improvements to deliver more strategic value:
+
+**📊 Better Content Curation**: Added premium sources (TLDR AI, Fintech, Product) and enhanced feed validation for higher-quality, more relevant content.
+
+**🎯 Strategic Focus**: Restructured sections to be more actionable - "Market Intelligence" with business implications, "Implementation Focus" for practical guidance, and "Next Steps" for clear actions.
+
+**🎓 Educational Approach**: Now includes context for technical terms and explains WHY developments matter, making complex AI/fintech concepts accessible to all team members.
+
+**⚡ Visual Improvements**: Added emojis for better readability and enhanced formatting for both Slack and Confluence.
+
+This newsletter now delivers maximum strategic value while building AI literacy across the team. **Share your feedback** - what topics would you like covered? What format works best? Help me make this even better!
+"""
 
 # ----------------------------
 # Helpers
