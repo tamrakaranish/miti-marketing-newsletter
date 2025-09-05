@@ -1,4 +1,4 @@
-*🗞️ MitiMind – 2025-09-02*
+*🗞️ MitiMind – 2025-09-03*
 
 ---
 
@@ -31,8 +31,5 @@ Small, safe pilot: run an anonymized-document summarization test using non-sensi
 • Finom has launched an AI accountant for German customers, expanding AI-assisted bookkeeping in SME banking <https://www.finextra.com/pressarticle/106885/finom-rolls-out-ai-accountant-for-german-customers?utm_medium=rssfinextra&utm_source=finextrafeed|Source>.  
 • Visa will add sustainability data from Ample Earth into merchant transactions to enrich payments data with climate-relevant metrics <https://www.finextra.com/pressarticle/106891/visa-to-add-sustainability-data-from-ample-earth-to-merchant-transactions?utm_medium=rssfinextra&utm_source=finextrafeed|Source>.  
 • Zopa has acquired Rvvup, a payments automation firm that provides AI-based checkout payment tools <https://www.finextra.com/newsarticle/46527/zopa-acquires-payments-automation-firm-rvvup?utm_medium=rssfinextra&utm_source=finextrafeed|Source>.
-
-5) CTA for pilots/polls
-Interested in the anonymized summarization pilot or a brief poll on data-residency priorities for our product roadmap? Reply to this message with "Pilot" or "Poll" and your estimated capacity (hours/week).
 
 — Auto‑draft by AI agent, please contact the EMs for feedback.
