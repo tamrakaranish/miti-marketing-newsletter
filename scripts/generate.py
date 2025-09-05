@@ -122,13 +122,21 @@ def rank_items(items, limit=12):
         # Business context
         "customer", "b2b", "saas"
     )
+    
+    # Score all items
     scored = []
     for it in items:
         text = (it["title"] + " " + it["summary"]).lower()
         score = sum(k in text for k in KEYS)
         if it["link"]:
             score += 1
+        
+        # Penalize arXiv to ensure source diversity (they tend to dominate with academic keywords)
+        if "arxiv.org" in it.get("link", ""):
+            score = score * 0.7  # Reduce arXiv scores by 30%
+            
         scored.append((score, it))
+    
     scored.sort(key=lambda x: x[0], reverse=True)
     return [it for _, it in scored[:limit]]
 
