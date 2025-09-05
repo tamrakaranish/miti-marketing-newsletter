@@ -44,6 +44,7 @@ CUSTOM_MESSAGE = """
 🚀 **Major Newsletter Upgrades - Issue #2**
 
 After our first newsletter, we've already implemented massive improvements to deliver more strategic value:
+**📊 Better Content Curation**: Added premium sources (TLDR AI, Fintech, Product) and enhanced feed validation for higher-quality, more relevant content.
 
 **👥 Multi-Department Focus**: Content structured for Sales, Marketing, Product, Customer Success, and Engineering - with role-specific insights everyone can act on.
 
@@ -52,8 +53,6 @@ After our first newsletter, we've already implemented massive improvements to de
 **💰 Business Impact First**: Prioritizes revenue opportunities, competitive risks, and customer implications over technical details.
 
 **📊 Source Diversity**: Balanced mix of business news, research, and industry trends (no more academic paper overload).
-
-**⚡ Streamlined Delivery**: Removed content length restrictions that were blocking generation - focuses on quality and relevance.
 
 **🎯 Actionable Intelligence**: Every section includes specific, time-bound recommendations with clear ownership and effort estimates.
 
@@ -178,7 +177,7 @@ def summarize_with_openai(selected_items):
             (3 bullet points) Brief updates on: competitor moves, customer trends, regulatory updates, or partnership opportunities in trade finance AI. Focus on business relevance, not technical details.
             
             ## Recommended Actions
-            1-2 specific, time-bound actions with clear owners: sales enablement needs, customer research, competitive analysis, partnership exploration, or product evaluations. Include estimated effort and timeline.
+            1-2 specific, recommended actions with clear owners: sales enablement needs, customer research, competitive analysis, partnership exploration, or product evaluations.
 
             Rules:
             - DO NOT include a title or header - the title is already provided.
