@@ -212,17 +212,18 @@ def summarize_with_openai(selected_items):
         die(f"Error parsing OpenAI response: {e} | Response: {resp.text[:800]}")
     return content.strip()
 
-def enforce_quality(md_text: str):
-    # Remove custom message from word count if present (it's manually curated)
+def enforce_quality(md_text: str, exclude_custom_message: bool = False):
+    # If we need to exclude custom message, remove it from word count
     text_for_counting = md_text
-    if CUSTOM_MESSAGE and CUSTOM_MESSAGE.strip():
+    if exclude_custom_message and CUSTOM_MESSAGE and CUSTOM_MESSAGE.strip():
         # Remove the custom message section including the separators
         custom_message_with_separators = f"---\n\n{CUSTOM_MESSAGE.strip()}\n\n---\n\n"
         text_for_counting = text_for_counting.replace(custom_message_with_separators, "")
     
     words = re.findall(r"\b\w+\b", text_for_counting)
     if len(words) > MAX_WORDS:
-        die(f"Draft too long ({len(words)} words excluding custom message). Keep under {MAX_WORDS} words.")
+        suffix = " (excluding custom message)" if exclude_custom_message else ""
+        die(f"Draft too long ({len(words)} words{suffix}). Keep under {MAX_WORDS} words.")
     
     links = re.findall(r"https?://\S+", md_text)
     if len(links) < REQUIRED_MIN_LINKS:
@@ -329,6 +330,10 @@ def write_outputs(md_body: str):
     
     md_full = header + custom_message_section + md_body_with_emojis + "\n\n— Auto‑draft by AI agent, please contact the EMs for feedback.\n"
     
+    # Quality check on full assembled text, excluding custom message from word count
+    print("[i] Enforcing quality gates on assembled newsletter…")
+    enforce_quality(md_full, exclude_custom_message=True)
+    
     # Markdown for PR/Confluence
     with OUT_MD.open("w", encoding="utf-8") as f:
         f.write(md_full)
@@ -357,9 +362,6 @@ def main():
 
     print("[i] Calling OpenAI to compose newsletter…")
     draft = summarize_with_openai(top)
-
-    print("[i] Enforcing quality gates…")
-    enforce_quality(draft)
 
     print("[i] Writing outputs…")
     write_outputs(draft)
