@@ -216,8 +216,8 @@ def enforce_quality(md_text: str):
     # Adjust word limit based on whether we have a custom message
     word_limit = MAX_WORDS
     if CUSTOM_MESSAGE and CUSTOM_MESSAGE.strip():
-        # Add buffer for custom message (approximately 150 words)
-        word_limit = MAX_WORDS + 200
+        # Add buffer for custom message (approximately 200+ words)
+        word_limit = MAX_WORDS + 250
     
     words = re.findall(r"\b\w+\b", md_text)
     if len(words) > word_limit:
