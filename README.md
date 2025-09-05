@@ -13,7 +13,7 @@ Support Mitigram's transition from "Feature Factory" to Product-Led Development 
 ## 🚀 How It Works
 
 ```mermaid
-graph TD
+graph LR
     A[RSS Sources] --> B[GitHub Actions<br/>Wednesday 7:00 CET]
     B --> C[Python Script<br/>generate.py]
     C --> D[OpenAI GPT-5-mini]
@@ -29,9 +29,9 @@ graph TD
 ### Workflow Steps
 1. **Scheduled Trigger** - GitHub Actions runs every Wednesday at 7:00 AM CET (6:00 AM UTC)
 2. **Feed Fetching** - Pulls latest content from curated AI and trade finance sources
-3. **Content Ranking** - Scores items based on relevance to PLD transformation
-4. **AI Summarization** - OpenAI GPT-5-mini creates newsletter draft with structured sections
-5. **Quality Gates** - Validates word count, source links, and required sections
+3. **Content Ranking** - Scores items based on business relevance (with arXiv penalty for source diversity)
+4. **AI Summarization** - OpenAI GPT-5-mini creates newsletter draft with educational, multi-department focus
+5. **Quality Gates** - Validates source links and required sections (flexible word count)
 6. **PR Creation** - Automatically opens draft PR for human review and approval
 7. **Publication** - After PR merge, auto-publishes to Slack and Confluence
 
@@ -82,27 +82,28 @@ Ensure GitHub Actions has permission to:
 
 #### RSS Sources (`sources.yml`)
 Current sources are categorized by:
-- **Trade Finance & Fintech** - Industry-specific news
-- **AI & Technology** - Core AI developments
-- **Business & Strategy** - Transformation insights
-- **Product & Development** - PLD methodologies
+- **Trade Finance & Fintech** - Industry-specific news (Finextra, Trade Finance Global, TLDR Fintech)
+- **AI & Technology** - Core AI developments (OpenAI, Microsoft, Hugging Face, TLDR AI)
+- **AI Research Papers** - Academic research (arXiv cs.AI, cs.LG with diversity controls)
+- **Business & Strategy** - Strategic insights (a16z Future, TLDR Product)
 
 Add/remove sources as needed for your organization's focus areas.
 
 #### Content Scoring (`scripts/generate.py`)
 The ranking algorithm prioritizes content with keywords relevant to:
-- AI/ML technologies (weight: 3)
-- Business transformation terms (weight: 2) 
-- Industry terms (weight: 1)
-- PLD-specific terms (weight: 2)
+- Core AI technologies (ai, artificial intelligence, model, llm, machine learning)
+- Trade finance and banking (trade finance, swift, payments, treasury, banking, kyc, aml)
+- Risk and compliance (sanctions, regulation, governance, regtech, fincrime)
+- Business context (customer, b2b, saas)
+- **Source diversity control**: arXiv scores reduced by 30% to prevent academic dominance
 
 #### Newsletter Template
 The AI generates structured content with these sections:
-1. **AI in Trade Finance** - Industry-specific developments
-2. **Tip of the Week** - Actionable insights
-3. **Internal Spotlight** - Suggested internal experiments
-4. **Quick Hits** - Brief industry updates (3 bullets)
-5. **CTA** - Call-to-action for pilots/engagement
+1. **Market Intelligence** - Major AI/fintech developments with business impact
+2. **Business Impact** - Clear implications for revenue, costs, and competitive positioning
+3. **What Different Teams Should Know** - Role-specific insights for Sales, Marketing, Product, Customer Success, Engineering
+4. **Market Pulse** - Brief industry updates (3 bullets)
+5. **Recommended Actions** - Specific, time-bound actions with clear ownership
 
 ## 🔧 Manual Execution
 
@@ -136,10 +137,10 @@ See [STAGING_GUIDE.md](STAGING_GUIDE.md) for detailed environment workflow.
 ## 📊 Quality Controls
 
 ### Automated Validation
-- **Word Limit**: Maximum 400 words to ensure conciseness
 - **Source Links**: Minimum 3 URLs required for credibility
-- **Required Sections**: Must include core newsletter sections
-- **Content Scoring**: Prioritizes PLD-relevant content
+- **Required Sections**: Must include Market Intelligence, Business Impact, and Team-specific sections
+- **Content Scoring**: Prioritizes business-relevant content with source diversity controls
+- **Word Count Logging**: Tracks length without blocking generation (flexible approach)
 
 ### Human Review Process
 Each generated newsletter creates a **draft PR** with:
@@ -150,12 +151,15 @@ Each generated newsletter creates a **draft PR** with:
 ## 🚀 Current Features
 
 ### ✅ Implemented
-- **Automated Generation** - Wednesday 7:00 CET schedule
-- **Multi-Platform Publishing** - Slack and Confluence integration
-- **Environment Management** - Test vs production workflows
-- **Human Review Process** - PR-based approval workflow
-- **Quality Controls** - Word limits, source validation, section requirements
-- **Flexible Configuration** - Configurable channels and sources
+- **Automated Generation** - Wednesday 7:00 CET schedule with GPT-5-mini
+- **Multi-Platform Publishing** - Slack and Confluence integration with link unfurling disabled
+- **Environment Management** - Test vs production workflows with GitHub Variables
+- **Human Review Process** - PR-based approval workflow with auto-publish on merge
+- **Educational Focus** - Technical terms explained for all departments (Sales, Marketing, Product, CS, Engineering)
+- **Source Diversity** - 12 curated feeds with arXiv penalty to prevent academic dominance
+- **Robust Error Handling** - 180s timeout + retry logic for OpenAI API calls
+- **Custom Messaging** - Manually editable announcement section with visual separators
+- **Flexible Configuration** - Configurable channels, no blocking word limits
 
 ### 🔮 Future Enhancements
 - **Trend Analysis** - Multi-week content analysis and insights
