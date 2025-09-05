@@ -188,7 +188,6 @@ def summarize_with_openai(selected_items):
             - EDUCATIONAL APPROACH: Always explain technical terms and concepts in plain business language with context (e.g., "LLMs (Large Language Models like ChatGPT)", "API (software connection between systems)")
             - Explain WHY developments matter, not just WHAT happened - include business implications and strategic significance
             - Make complex AI/fintech concepts accessible to non-technical team members (sales, marketing, customer success)
-            - Include specific timelines, effort estimates, and responsible teams for actions
             - Prioritize customer impact, revenue implications, and competitive positioning
             - Avoid academic research unless it has immediate business relevance
             - Make content useful for sales calls, customer conversations, and strategic decisions
