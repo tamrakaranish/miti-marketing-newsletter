@@ -15,6 +15,7 @@ import os
 import re
 import json
 import hashlib
+import time
 import datetime as dt
 from pathlib import Path
 from textwrap import dedent
@@ -206,10 +207,17 @@ def summarize_with_openai(selected_items):
         ]
     }
     headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
-    try:
-        resp = requests.post(OPENAI_API_URL, headers=headers, data=json.dumps(body), timeout=60)
-    except requests.exceptions.RequestException as e:
-        die(f"OpenAI API network error: {e}")
+    
+    # Simple retry logic - try twice with a brief delay
+    for attempt in range(2):
+        try:
+            resp = requests.post(OPENAI_API_URL, headers=headers, data=json.dumps(body), timeout=180)
+            break  # Success, exit retry loop
+        except requests.exceptions.RequestException as e:
+            if attempt == 1:  # Final attempt failed
+                die(f"OpenAI API network error after retries: {e}")
+            print(f"[WARNING] OpenAI API timeout on attempt {attempt + 1}, retrying once in 5 seconds...")
+            time.sleep(5)
     
     if resp.status_code >= 300:
         try:
