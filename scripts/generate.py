@@ -216,7 +216,9 @@ def enforce_quality(md_text: str):
     # Remove custom message from word count if present (it's manually curated)
     text_for_counting = md_text
     if CUSTOM_MESSAGE and CUSTOM_MESSAGE.strip():
-        text_for_counting = text_for_counting.replace(CUSTOM_MESSAGE.strip(), "")
+        # Remove the custom message section including the separators
+        custom_message_with_separators = f"---\n\n{CUSTOM_MESSAGE.strip()}\n\n---\n\n"
+        text_for_counting = text_for_counting.replace(custom_message_with_separators, "")
     
     words = re.findall(r"\b\w+\b", text_for_counting)
     if len(words) > MAX_WORDS:
