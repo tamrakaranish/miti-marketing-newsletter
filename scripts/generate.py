@@ -213,9 +213,15 @@ def summarize_with_openai(selected_items):
     return content.strip()
 
 def enforce_quality(md_text: str):
-    words = re.findall(r"\b\w+\b", md_text)
+    # Remove custom message from word count if present (it's manually curated)
+    text_for_counting = md_text
+    if CUSTOM_MESSAGE and CUSTOM_MESSAGE.strip():
+        text_for_counting = text_for_counting.replace(CUSTOM_MESSAGE.strip(), "")
+    
+    words = re.findall(r"\b\w+\b", text_for_counting)
     if len(words) > MAX_WORDS:
-        die(f"Draft too long ({len(words)} words). Keep under {MAX_WORDS} words.")
+        die(f"Draft too long ({len(words)} words excluding custom message). Keep under {MAX_WORDS} words.")
+    
     links = re.findall(r"https?://\S+", md_text)
     if len(links) < REQUIRED_MIN_LINKS:
         die(f"Draft contains too few links ({len(links)}). Require at least {REQUIRED_MIN_LINKS} source URLs.")
