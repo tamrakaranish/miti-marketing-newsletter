@@ -2,13 +2,13 @@ name: "Publish Newsletter"
 
 on:
   push:
-    branches: [ main, Confluencefirst, dev ]  # Only trigger from main or your dev branches
+    branches: [ main ]  # Only auto-publish from main branch (production)
     paths:
       - "newsletter/*.md"
   workflow_dispatch:  # Allow manual triggering from any branch
     inputs:
       environment:
-        description: 'Choose environment (overrides PR environment)'
+        description: 'Choose environment for manual publishing'
         required: true
         default: 'test'
         type: choice
@@ -31,23 +31,14 @@ jobs:
         id: env
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            # Manual trigger - use input environment
+            # Manual trigger - use selected environment
             echo "environment=${{ inputs.environment }}" >> $GITHUB_OUTPUT
-            echo "🎯 Manual trigger → Publishing to: ${{ inputs.environment }} environment"
-            echo "📱 Slack channel: ${{ inputs.environment == 'production' && (vars.SLACK_CHANNEL_PRODUCTION || '#mitigram-ai') || (vars.SLACK_CHANNEL_TEST || '#ai-publish-test') }}"
+            echo "🎯 Manual publish → ${{ inputs.environment }} environment"
           else
-            # Auto-triggered by push - read from commit message
-            COMMIT_MSG="${{ github.event.head_commit.message }}"
-            if echo "$COMMIT_MSG" | grep -q "\[env:test\]"; then
-              echo "environment=test" >> $GITHUB_OUTPUT
-              echo "🧪 Auto-triggered with [env:test] → Publishing to: TEST"
-              echo "📱 Slack channel: ${{ vars.SLACK_CHANNEL_TEST || '#ai-publish-test' }}"
-            else
-              echo "environment=production" >> $GITHUB_OUTPUT
-              echo "🚀 Auto-triggered from PR merge → Publishing to: PRODUCTION"
-              echo "📱 Slack channel: ${{ vars.SLACK_CHANNEL_PRODUCTION || '#mitigram-ai' }}"
-              echo "✅ PR was reviewed and approved, ready for production"
-            fi
+            # Auto-triggered by push to main - always production
+            echo "environment=production" >> $GITHUB_OUTPUT
+            echo "🚀 Auto-triggered from main branch → PRODUCTION"
+            echo "✅ PR was reviewed and approved, publishing to production"
           fi
       
       - name: Validate Slack channel configuration
@@ -107,33 +98,12 @@ jobs:
             
             echo "🎯 Using specified newsletter: $MD"
           else
-            # Auto-triggered or manual without date - find from push or use latest
-            echo "== Finding newsletter from push or latest =="
-            
-            # Try to get changed files, fallback to latest if it fails
-            if [ -n "${{ github.event.before }}" ] && [ "${{ github.event.before }}" != "0000000000000000000000000000000000000000" ]; then
-              CHANGED="$(git diff --name-only "${{ github.event.before }}" "${{ github.sha }}" 2>/dev/null || echo "")"
-            else
-              CHANGED=""
-            fi
-            echo "Changed files: $CHANGED"
-        
-            # Pick date-named newsletters touched by this push
-            MAPFILE=()
-            while IFS= read -r f; do
-              [[ "$f" =~ ^newsletter/[0-9]{4}-[0-9]{2}-[0-9]{2}\.md$ ]] && MAPFILE+=("$f")
-            done < <(printf '%s\n' "$CHANGED")
-        
-            if [ "${#MAPFILE[@]}" -eq 0 ]; then
-              echo "No date-named newsletter in this push, falling back to latest by filename…"
-              MD="$(ls -1 newsletter/*.md 2>/dev/null | grep -E '/[0-9]{4}-[0-9]{2}-[0-9]{2}\.md$' | sort | tail -n 1 || true)"
-              [ -z "${MD:-}" ] && { echo "No newsletter files found"; exit 1; }
-            else
-              # If multiple were touched, take the newest by filename
-              MD="$(printf '%s\n' "${MAPFILE[@]}" | sort | tail -n 1)"
-            fi
-            
+            # Auto-triggered or manual without date - use latest newsletter
+            echo "🔍 Finding latest newsletter..."
+            MD="$(ls -1 newsletter/*.md 2>/dev/null | grep -E '/[0-9]{4}-[0-9]{2}-[0-9]{2}\.md$' | sort | tail -n 1 || true)"
+            [ -z "${MD:-}" ] && { echo "❌ No newsletter files found"; exit 1; }
             TXT="${MD%.md}_slack.txt"
+            echo "📄 Using latest newsletter: $MD"
           fi
       
           # Set output variables
@@ -242,7 +212,6 @@ jobs:
       - name: Post newsletter to Slack with Confluence link
         env:
           SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
-          SLACK_CHANNEL: ${{ steps.env.outputs.environment == 'production' && (vars.SLACK_CHANNEL_PRODUCTION || '#mitigram-ai') || (vars.SLACK_CHANNEL_TEST || '#ai-publish-test') }}
           FILE_SLACK: ${{ steps.find.outputs.file_slack }}
         shell: bash
         run: |
@@ -253,6 +222,25 @@ jobs:
           if [ ! -f "$FILE_SLACK" ]; then
             echo "Slack file missing at post time: $FILE_SLACK"; exit 1
           fi
+          
+          # Determine Slack channel based on environment
+          ENV="${{ steps.env.outputs.environment }}"
+          if [ "$ENV" = "production" ]; then
+            SLACK_CHANNEL="${{ vars.SLACK_CHANNEL_PRODUCTION }}"
+            if [ -z "$SLACK_CHANNEL" ]; then
+              echo "❌ SLACK_CHANNEL_PRODUCTION variable is not set!"
+              echo "Please set it in GitHub → Settings → Variables"
+              exit 1
+            fi
+          else
+            SLACK_CHANNEL="${{ vars.SLACK_CHANNEL_TEST }}"
+            if [ -z "$SLACK_CHANNEL" ]; then
+              echo "❌ SLACK_CHANNEL_TEST variable is not set!"
+              echo "Please set it in GitHub → Settings → Variables"
+              exit 1
+            fi
+          fi
+          echo "📱 Publishing to Slack channel: $SLACK_CHANNEL"
           
           # Read newsletter content and add Confluence link
           TEXT="$(cat "$FILE_SLACK")"
