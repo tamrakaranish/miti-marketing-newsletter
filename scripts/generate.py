@@ -46,15 +46,10 @@ CUSTOM_MESSAGE = """
 
 After our first newsletter, we've already implemented massive improvements to deliver more strategic value:
 **📊 Better Content Curation**: Added premium sources (TLDR AI, Fintech, Product) and enhanced feed validation for higher-quality, more relevant content.
-
 **👥 Multi-Department Focus**: Content structured for Sales, Marketing, Product, Customer Success, and Engineering - with role-specific insights everyone can act on.
-
 **🎓 Educational Approach**: Now includes context for technical terms and explains WHY developments matter, making complex AI/fintech concepts accessible to all team members.
-
 **💰 Business Impact First**: Prioritizes revenue opportunities, competitive risks, and customer implications over technical details.
-
 **📊 Source Diversity**: Balanced mix of business news, research, and industry trends (no more academic paper overload).
-
 **🎯 Actionable Intelligence**: Every section includes specific, time-bound recommendations with clear ownership and effort estimates.
 
 The newsletter now serves as a strategic tool for customer conversations, competitive positioning, and informed decision-making across all teams. **Keep the feedback coming** - what business scenarios would you like covered?
