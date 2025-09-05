@@ -4,7 +4,10 @@ on:
   push:
     branches: [ main ]  # Only auto-publish from main branch (production)
     paths:
-      - "newsletter/*.md"
+      - "newsletter/20*.md"  # Only trigger for actual newsletter files (not examples)
+      - "!newsletter/*-test*.md"  # Exclude test newsletters
+      - "!newsletter/*-draft*.md"  # Exclude draft newsletters
+      - "!newsletter/*-manual*.md"  # Exclude manually generated newsletters
   workflow_dispatch:  # Allow manual triggering from any branch
     inputs:
       environment:
@@ -19,6 +22,11 @@ on:
         description: 'Newsletter date (YYYY-MM-DD) or leave empty for latest'
         required: false
         type: string
+      list_available:
+        description: 'Just list available newsletters (for reference)'
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: write  # Need write permissions to delete branches
@@ -72,6 +80,23 @@ jobs:
         run: |
           set -euo pipefail
           
+          # If just listing available newsletters, show them and exit
+          if [ "${{ inputs.list_available }}" = "true" ]; then
+            echo "📋 Available newsletters:"
+            echo ""
+            echo "📰 Scheduled newsletters (auto-publish):"
+            ls -1 newsletter/*.md 2>/dev/null | grep -E '/[0-9]{4}-[0-9]{2}-[0-9]{2}\.md$' | sort | tail -10 || echo "  None found"
+            echo ""
+            echo "🚀 Manual newsletters (manual publish):"
+            ls -1 newsletter/*.md 2>/dev/null | grep -E '/[0-9]{4}-[0-9]{2}-[0-9]{2}-manual-' | sort | tail -10 || echo "  None found"
+            echo ""
+            echo "🧪 Test newsletters:"
+            ls -1 newsletter/*.md 2>/dev/null | grep -E '/[0-9]{4}-[0-9]{2}-[0-9]{2}-test-' | sort | tail -10 || echo "  None found"
+            echo ""
+            echo "💡 To publish a newsletter, rerun this workflow without the 'list_available' option"
+            exit 0
+          fi
+          
           if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ -n "${{ inputs.newsletter_date }}" ]; then
             # Manual trigger with specific date
             TARGET_DATE="${{ inputs.newsletter_date }}"
@@ -83,24 +108,46 @@ jobs:
               exit 1
             fi
             
-            MD="newsletter/${TARGET_DATE}.md"
-            TXT="newsletter/${TARGET_DATE}_slack.txt"
+            # Find newsletter file for the specified date (any type)
+            echo "🔍 Looking for newsletters from $TARGET_DATE..."
+            FOUND_FILES=($(ls newsletter/${TARGET_DATE}*.md 2>/dev/null || true))
             
-            if [ ! -f "$MD" ]; then
-              echo "❌ Newsletter not found: $MD"
+            if [ ${#FOUND_FILES[@]} -eq 0 ]; then
+              echo "❌ No newsletters found for date: $TARGET_DATE"
               echo ""
               echo "📋 Available newsletters:"
-              ls -1 newsletter/*.md 2>/dev/null | grep -E '/[0-9]{4}-[0-9]{2}-[0-9]{2}\.md$' | sort | tail -5 || echo "None found"
+              ls -1 newsletter/*.md 2>/dev/null | grep -E '/[0-9]{4}-[0-9]{2}-[0-9]{2}' | sort | tail -10 || echo "None found"
               echo ""
               echo "💡 Tip: Leave newsletter_date empty to use the latest newsletter"
               exit 1
+            elif [ ${#FOUND_FILES[@]} -eq 1 ]; then
+              MD="${FOUND_FILES[0]}"
+              echo "✅ Found newsletter: $MD"
+            else
+              echo "📋 Multiple newsletters found for $TARGET_DATE:"
+              for i in "${!FOUND_FILES[@]}"; do
+                echo "  $((i+1)). ${FOUND_FILES[i]}"
+              done
+              # Use the most recent (last in array when sorted)
+              MD="$(printf '%s\n' "${FOUND_FILES[@]}" | sort | tail -n 1)"
+              echo "🎯 Using most recent: $MD"
             fi
             
-            echo "🎯 Using specified newsletter: $MD"
+            TXT="${MD%.md}_slack.txt"
           else
-            # Auto-triggered or manual without date - use latest newsletter
+            # Auto-triggered or manual without date - use latest newsletter (any type)
             echo "🔍 Finding latest newsletter..."
-            MD="$(ls -1 newsletter/*.md 2>/dev/null | grep -E '/[0-9]{4}-[0-9]{2}-[0-9]{2}\.md$' | sort | tail -n 1 || true)"
+            
+            if [ "${{ github.event_name }}" = "push" ]; then
+              # Auto-triggered by push - only look for scheduled files (exact date format)
+              MD="$(ls -1 newsletter/*.md 2>/dev/null | grep -E '/[0-9]{4}-[0-9]{2}-[0-9]{2}\.md$' | sort | tail -n 1 || true)"
+              echo "🚀 Auto-trigger: Looking for scheduled newsletters only"
+            else
+              # Manual trigger without date - include all newsletter types
+              MD="$(ls -1 newsletter/*.md 2>/dev/null | grep -E '/[0-9]{4}-[0-9]{2}-[0-9]{2}' | sort | tail -n 1 || true)"
+              echo "🎯 Manual trigger: Looking for any newsletter type"
+            fi
+            
             [ -z "${MD:-}" ] && { echo "❌ No newsletter files found"; exit 1; }
             TXT="${MD%.md}_slack.txt"
             echo "📄 Using latest newsletter: $MD"
@@ -167,6 +214,24 @@ jobs:
           DATE_PART="$(basename "$FILE_MD" .md)"
           TITLE="MitiMind AI Newsletter - $DATE_PART"
 
+          # Check if page already exists
+          EXISTING="$(curl -s -u "$CF_USER:$CF_TOKEN" \
+            "$CF_BASE/wiki/rest/api/content?spaceKey=$CF_SPACE_KEY&title=$(echo "$TITLE" | sed 's/ /%20/g')" | \
+            jq -r '.results | length')"
+          
+          if [ "$EXISTING" -gt 0 ]; then
+            echo "⚠️  Page '$TITLE' already exists. Skipping Confluence creation."
+            echo "🔍 This might be a duplicate run or the page was manually created."
+            # Use existing page for Slack link
+            EXISTING_URL="$(curl -s -u "$CF_USER:$CF_TOKEN" \
+              "$CF_BASE/wiki/rest/api/content?spaceKey=$CF_SPACE_KEY&title=$(echo "$TITLE" | sed 's/ /%20/g')" | \
+              jq -r '.results[0]._links.webui')"
+            CONFLUENCE_URL="$CF_BASE/wiki$EXISTING_URL"
+            echo "CONFLUENCE_URL=$CONFLUENCE_URL" >> "$GITHUB_ENV"
+            echo "📖 Using existing page: $CONFLUENCE_URL"
+          else
+            echo "✅ Creating new page: $TITLE"
+
           # Create new page payload
           DATA="$(jq -n \
             --arg title "$TITLE" \
@@ -208,6 +273,7 @@ jobs:
           
           # Save Confluence URL for Slack step
           echo "CONFLUENCE_URL=$CONFLUENCE_URL" >> "$GITHUB_ENV"
+          fi  # End of else block for page creation
 
       - name: Post newsletter to Slack with Confluence link
         env:
@@ -220,7 +286,17 @@ jobs:
             echo "SLACK_BOT_TOKEN is not set"; exit 1
           fi
           if [ ! -f "$FILE_SLACK" ]; then
-            echo "Slack file missing at post time: $FILE_SLACK"; exit 1
+            echo "⚠️  Slack file missing: $FILE_SLACK"
+            echo "🔄 Generating Slack version from Markdown..."
+            
+            MD_FILE="${{ steps.find.outputs.file_md }}"
+            if [ ! -f "$MD_FILE" ]; then
+              echo "❌ Markdown file also missing: $MD_FILE"; exit 1
+            fi
+            
+            # Generate Slack version using format_slack.py
+            python scripts/format_slack.py "$MD_FILE" "$FILE_SLACK"
+            echo "✅ Generated missing Slack file: $FILE_SLACK"
           fi
           
           # Determine Slack channel based on environment
