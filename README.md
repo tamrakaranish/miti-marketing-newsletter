@@ -14,22 +14,26 @@ Support Mitigram's transition from "Feature Factory" to Product-Led Development 
 
 ```mermaid
 graph LR
-    A[RSS Sources] --> B[GitHub Actions]
-    B --> C[Python Script]
-    C --> D[OpenAI API]
-    D --> E[Markdown Newsletter]
-    E --> F[Draft PR]
-    F --> G[Human Review]
-    G --> H[Published Newsletter]
+    A[RSS Sources] --> B[GitHub Actions<br/>Wednesday 7:00 CET]
+    B --> C[Python Script<br/>generate.py]
+    C --> D[OpenAI GPT-5-mini]
+    D --> E[Markdown Newsletter<br/>+ Slack Text]
+    E --> F[Draft PR<br/>for Review]
+    F --> G[Human Review<br/>& Approval]
+    G --> H[Merge PR]
+    H --> I[Auto-Publish]
+    I --> J[Slack Channel]
+    I --> K[Confluence Page]
 ```
 
 ### Workflow Steps
-1. **Scheduled Trigger** - GitHub Actions runs every Monday at 8:00 AM UTC
+1. **Scheduled Trigger** - GitHub Actions runs every Wednesday at 7:00 AM CET (6:00 AM UTC)
 2. **Feed Fetching** - Pulls latest content from curated AI and trade finance sources
-3. **Content Ranking** - Scores items based on relevance to PLD transformation
-4. **AI Summarization** - OpenAI creates newsletter draft with structured sections
-5. **Quality Gates** - Validates word count, source links, and required sections
+3. **Content Ranking** - Scores items based on business relevance (with arXiv penalty for source diversity)
+4. **AI Summarization** - OpenAI GPT-5-mini creates newsletter draft with educational, multi-department focus
+5. **Quality Gates** - Validates source links and required sections (flexible word count)
 6. **PR Creation** - Automatically opens draft PR for human review and approval
+7. **Publication** - After PR merge, auto-publishes to Slack and Confluence
 
 ## 📋 Setup Instructions
 
@@ -37,19 +41,36 @@ graph LR
 ```bash
 # Clone or ensure this directory structure exists:
 miti-ai-newsletter/
-├── .github/workflows/generate-newsletter.yml
-├── scripts/generate.py
-├── sources.yml
-├── requirements.txt
-├── newsletter/          # Auto-created output directory
+├── .github/workflows/
+│   ├── newsletter.yml    # Generation workflow
+│   └── publish.yml       # Publishing workflow
+├── scripts/
+│   ├── generate.py       # Main generation script
+│   └── format_slack.py   # Slack formatting utility
+├── sources.yml           # RSS feed configuration
+├── requirements.txt      # Python dependencies
+├── newsletter/           # Auto-created output directory
+├── CONFIG.md            # Configuration guide
+├── STAGING_GUIDE.md     # Environment setup guide
 └── README.md
 ```
 
 ### 2. GitHub Configuration
 
 #### Required Secrets
-Add these in **Settings → Secrets and Variables → Actions**:
-- `OPENAI_API_KEY` - Your OpenAI API key with GPT-4 access
+Add these in **Settings → Secrets and Variables → Actions → Secrets**:
+- `OPENAI_API_KEY` - Your OpenAI API key with GPT-5-mini access
+- `SLACK_BOT_TOKEN` - Slack app bot token for posting newsletters
+- `CONFLUENCE_BASE_URL` - Your Confluence base URL (e.g., https://company.atlassian.net)
+- `CONFLUENCE_USER` - Confluence user email
+- `CONFLUENCE_API_TOKEN` - Confluence API token
+- `CONFLUENCE_SPACE_KEY` - Target space key for newsletters
+- `PR_TOKEN` - GitHub personal access token for creating PRs
+
+#### Optional Variables
+Add these in **Settings → Secrets and Variables → Actions → Variables**:
+- `SLACK_CHANNEL_TEST` - Test Slack channel (default: #ai-publish-test)
+- `SLACK_CHANNEL_PRODUCTION` - Production Slack channel (default: #mitigram-ai)
 
 #### Repository Permissions
 Ensure GitHub Actions has permission to:
@@ -61,27 +82,28 @@ Ensure GitHub Actions has permission to:
 
 #### RSS Sources (`sources.yml`)
 Current sources are categorized by:
-- **Trade Finance & Fintech** - Industry-specific news
-- **AI & Technology** - Core AI developments
-- **Business & Strategy** - Transformation insights
-- **Product & Development** - PLD methodologies
+- **Trade Finance & Fintech** - Industry-specific news (Finextra, Trade Finance Global, TLDR Fintech)
+- **AI & Technology** - Core AI developments (OpenAI, Microsoft, Hugging Face, TLDR AI)
+- **AI Research Papers** - Academic research (arXiv cs.AI, cs.LG with diversity controls)
+- **Business & Strategy** - Strategic insights (a16z Future, TLDR Product)
 
 Add/remove sources as needed for your organization's focus areas.
 
 #### Content Scoring (`scripts/generate.py`)
 The ranking algorithm prioritizes content with keywords relevant to:
-- AI/ML technologies (weight: 3)
-- Business transformation terms (weight: 2) 
-- Industry terms (weight: 1)
-- PLD-specific terms (weight: 2)
+- Core AI technologies (ai, artificial intelligence, model, llm, machine learning)
+- Trade finance and banking (trade finance, swift, payments, treasury, banking, kyc, aml)
+- Risk and compliance (sanctions, regulation, governance, regtech, fincrime)
+- Business context (customer, b2b, saas)
+- **Source diversity control**: arXiv scores reduced by 30% to prevent academic dominance
 
 #### Newsletter Template
 The AI generates structured content with these sections:
-1. **AI in Trade Finance** - Industry-specific developments
-2. **Tip of the Week** - Actionable insights
-3. **Internal Spotlight** - Suggested internal experiments
-4. **Quick Hits** - Brief industry updates (3 bullets)
-5. **CTA** - Call-to-action for pilots/engagement
+1. **Market Intelligence** - Major AI/fintech developments with business impact
+2. **Business Impact** - Clear implications for revenue, costs, and competitive positioning
+3. **What Different Teams Should Know** - Role-specific insights for Sales, Marketing, Product, Customer Success, Engineering
+4. **Market Pulse** - Brief industry updates (3 bullets)
+5. **Recommended Actions** - Specific, time-bound actions with clear ownership
 
 ## 🔧 Manual Execution
 
@@ -98,16 +120,27 @@ cd scripts
 python generate.py
 ```
 
-### GitHub Actions Manual Trigger
-Go to **Actions → Generate AI Newsletter → Run workflow** to trigger manually.
+### GitHub Actions Manual Triggers
+
+#### Generate Newsletter (Testing)
+1. Go to **Actions → Generate AI Newsletter → Run workflow**
+2. Choose options:
+   - **Skip PR and commit directly**: For testing only
+   - **Target environment**: `test` (posts to test Slack) or `production`
+
+#### Publish Newsletter (Manual)
+1. Go to **Actions → Publish Newsletter → Run workflow**
+2. Choose environment: `test` or `production`
+
+See [STAGING_GUIDE.md](STAGING_GUIDE.md) for detailed environment workflow.
 
 ## 📊 Quality Controls
 
 ### Automated Validation
-- **Word Limit**: Maximum 400 words to ensure conciseness
 - **Source Links**: Minimum 3 URLs required for credibility
-- **Required Sections**: Must include core newsletter sections
-- **Content Scoring**: Prioritizes PLD-relevant content
+- **Required Sections**: Must include Market Intelligence, Business Impact, and Team-specific sections
+- **Content Scoring**: Prioritizes business-relevant content with source diversity controls
+- **Word Count Logging**: Tracks length without blocking generation (flexible approach)
 
 ### Human Review Process
 Each generated newsletter creates a **draft PR** with:
@@ -115,51 +148,72 @@ Each generated newsletter creates a **draft PR** with:
 - 🎯 Purpose reminder linking to PLD transformation
 - 📋 Clear next steps for approval process
 
-## 🚀 Future Enhancements
+## 🚀 Current Features
 
-### Planned Features
+### ✅ Implemented
+- **Automated Generation** - Wednesday 7:00 CET schedule with GPT-5-mini
+- **Multi-Platform Publishing** - Slack and Confluence integration with link unfurling disabled
+- **Environment Management** - Test vs production workflows with GitHub Variables
+- **Human Review Process** - PR-based approval workflow with auto-publish on merge
+- **Educational Focus** - Technical terms explained for all departments (Sales, Marketing, Product, CS, Engineering)
+- **Source Diversity** - 12 curated feeds with arXiv penalty to prevent academic dominance
+- **Robust Error Handling** - 180s timeout + retry logic for OpenAI API calls
+- **Custom Messaging** - Manually editable announcement section with visual separators
+- **Flexible Configuration** - Configurable channels, no blocking word limits
+
+### 🔮 Future Enhancements
 - **Trend Analysis** - Multi-week content analysis and insights
 - **Engagement Metrics** - Track readership and topic interest
 - **Dynamic Sources** - AI-powered source discovery and validation
-- **Multi-Format Output** - Email templates, web publishing, Slack integration
-
-### Extension Opportunities
-- **AI Knowledge Hub** - Centralized resource library
-- **Trend Dashboards** - Real-time AI industry monitoring  
-- **Cross-Departmental Workshops** - AI literacy training programs
+- **Email Integration** - Direct email newsletter distribution
+- **Analytics Dashboard** - Newsletter performance tracking
 
 ## 🛠️ Troubleshooting
 
 ### Common Issues
 
-**Newsletter Not Generated**
+**Newsletter Generation Fails**
 - Check OpenAI API key is valid and has sufficient credits
-- Verify RSS sources are accessible
-- Review GitHub Actions logs for specific errors
+- Verify GPT-5-mini model access (or change to gpt-4o-mini in `scripts/generate.py`)
+- Review RSS sources are accessible in `sources.yml`
+- Check GitHub Actions logs for specific errors
+
+**Publishing Issues**
+- Verify Slack bot is added to target channels
+- Check Confluence API credentials and space permissions
+- Ensure all required secrets are configured
+- Review publish workflow logs for API errors
+
+**Wrong Environment**
+- Check commit message contains correct `[env:test]` or `[env:production]` tag
+- Verify environment selection in manual workflow triggers
+- See [STAGING_GUIDE.md](STAGING_GUIDE.md) for environment details
 
 **PR Not Created**
 - Ensure GitHub Actions has pull request permissions
-- Check if newsletter file was actually generated
-- Verify GitHub token permissions
+- Check if `PR_TOKEN` secret has proper scope
+- Verify newsletter files were generated successfully
 
-**Content Quality Issues**
-- Adjust keyword scoring weights in `rank_items()` function
-- Update system message prompt for better AI alignment
-- Modify quality gate thresholds as needed
+### Configuration
+For detailed configuration options, see:
+- [CONFIG.md](CONFIG.md) - Complete configuration reference
+- [STAGING_GUIDE.md](STAGING_GUIDE.md) - Environment setup guide
 
-### Debug Mode
-Add debug logging by setting environment variable:
-```bash
-export DEBUG_NEWSLETTER=true
-```
+## 📚 Documentation
+
+- **[README.md](README.md)** - This overview and setup guide
+- **[CONFIG.md](CONFIG.md)** - Complete configuration reference
+- **[STAGING_GUIDE.md](STAGING_GUIDE.md)** - Environment and testing guide
+- **[FEED_VALIDATION_GUIDE.md](FEED_VALIDATION_GUIDE.md)** - Step-by-step guide for validating RSS feeds
 
 ## 📧 Support
 
 For issues with the newsletter automation system:
 1. Check GitHub Actions workflow logs
-2. Review this README for configuration steps
+2. Review configuration guides (CONFIG.md, STAGING_GUIDE.md)
 3. Test manual execution locally first
-4. Contact the AI enablement team for prompt/source adjustments
+4. Verify all secrets and variables are properly configured
+5. Contact the AI enablement team for prompt/source adjustments
 
 ---
 

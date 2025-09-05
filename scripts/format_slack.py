@@ -59,6 +59,5 @@ md = re.sub(r"\[([^\]]+)\]\((https?://[^)]+)\)", r"<\2|\1>", md)
 
 with open(slack_path, "w", encoding="utf-8") as f:
     f.write(md)
-    f.write("\n\n_Read the full issue in Confluence once published._")
 
 print(f"[OK] Slack text written to {slack_path}")
