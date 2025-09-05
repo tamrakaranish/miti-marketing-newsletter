@@ -41,19 +41,23 @@ REQUIRED_MIN_LINKS = 3
 
 # Custom message section (can be edited for special announcements)
 CUSTOM_MESSAGE = """
-🎉 **Major Newsletter Upgrades - Issue #2**
+🚀 **Major Newsletter Upgrades - Issue #2**
 
 After our first newsletter, we've already implemented massive improvements to deliver more strategic value:
 
-**📊 Better Content Curation**: Added premium sources (TLDR AI, Fintech, Product) and enhanced feed validation for higher-quality, more relevant content.
-
-**🎯 Strategic Focus**: Restructured sections to be more actionable - "Market Intelligence" with business implications, "Implementation Focus" for practical guidance, and "Next Steps" for clear actions.
+**👥 Multi-Department Focus**: Content structured for Sales, Marketing, Product, Customer Success, and Engineering - with role-specific insights everyone can act on.
 
 **🎓 Educational Approach**: Now includes context for technical terms and explains WHY developments matter, making complex AI/fintech concepts accessible to all team members.
 
-**⚡ Visual Improvements**: Added emojis for better readability and enhanced formatting for both Slack and Confluence.
+**💰 Business Impact First**: Prioritizes revenue opportunities, competitive risks, and customer implications over technical details.
 
-This newsletter now delivers maximum strategic value while building AI literacy across the team. **Share your feedback** - what topics would you like covered? What format works best? Help me make this even better!
+**📊 Source Diversity**: Balanced mix of business news, research, and industry trends (no more academic paper overload).
+
+**⚡ Streamlined Delivery**: Removed content length restrictions that were blocking generation - focuses on quality and relevance.
+
+**🎯 Actionable Intelligence**: Every section includes specific, time-bound recommendations with clear ownership and effort estimates.
+
+The newsletter now serves as a strategic tool for customer conversations, competitive positioning, and informed decision-making across all teams. **Keep the feedback coming** - what business scenarios would you like covered?
 """
 
 # ----------------------------
@@ -182,7 +186,9 @@ def summarize_with_openai(selected_items):
             - Start directly with the first section content
             - Include the source link next to each claim (e.g., [Source](URL)).
             - Focus on business impact and practical actions for ALL departments, not just engineering
-            - Use plain language - explain technical terms in business context (e.g., "AI monitoring = quality control for automated decisions")
+            - EDUCATIONAL APPROACH: Always explain technical terms and concepts in plain business language with context (e.g., "LLMs (Large Language Models like ChatGPT)", "API (software connection between systems)")
+            - Explain WHY developments matter, not just WHAT happened - include business implications and strategic significance
+            - Make complex AI/fintech concepts accessible to non-technical team members (sales, marketing, customer success)
             - Include specific timelines, effort estimates, and responsible teams for actions
             - Prioritize customer impact, revenue implications, and competitive positioning
             - Avoid academic research unless it has immediate business relevance
