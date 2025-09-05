@@ -150,7 +150,7 @@ def summarize_with_openai(selected_items):
     user_payload = {
         "date": DATE,
         "instructions": dedent("""
-            Write under 400 words using proper Markdown headings for sections:
+            Write EXACTLY 350-400 words total using proper Markdown headings for sections:
             
             ## Market Intelligence
             (1-2 items) Major AI developments affecting fintech/trade finance. Focus on: new AI capabilities, regulatory changes, competitive moves, or technology breakthroughs that could impact our product roadmap.
@@ -178,6 +178,7 @@ def summarize_with_openai(selected_items):
             - Be specific about implications rather than generic
             - If uncertain about a claim, exclude it or mark it clearly
             - No confidential info. No personal data.
+            - CRITICAL: Keep total word count between 350-400 words. Be concise and focused.
         """).strip(),
         "items": selected_items
     }
@@ -216,7 +217,7 @@ def enforce_quality(md_text: str):
     # Adjust word limit based on whether we have a custom message
     word_limit = MAX_WORDS
     if CUSTOM_MESSAGE and CUSTOM_MESSAGE.strip():
-        # Add buffer for custom message (approximately 200+ words)
+        # Add buffer for custom message (approximately 150 words) + increased AI content
         word_limit = MAX_WORDS + 250
     
     words = re.findall(r"\b\w+\b", md_text)
