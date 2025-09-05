@@ -129,34 +129,40 @@ def summarize_with_openai(selected_items):
 
     system_msg = (
         "You produce a short internal AI newsletter for a trade-finance SaaS company. "
+        "Your audience includes product managers, engineers, and business stakeholders who may not be familiar with all AI/fintech concepts. "
+        "When covering technical topics, provide brief educational context to help readers understand the significance. "
         "Be factual. Include source links next to claims. Avoid speculation and personal data."
     )
     user_payload = {
         "date": DATE,
         "instructions": dedent("""
-            Write under 350 words using proper Markdown headings for sections:
+            Write under 400 words using proper Markdown headings for sections:
             
-            ## AI in Trade Finance
-            (1 item) + 'What this means for us'
+            ## Market Intelligence
+            (1-2 items) Major AI developments affecting fintech/trade finance. Focus on: new AI capabilities, regulatory changes, competitive moves, or technology breakthroughs that could impact our product roadmap.
             
-            ## Tip of the Week
-            (Weekly insight or best practice)
+            ## What This Means for Us
+            Translate the market intelligence into specific implications for our trade finance SaaS platform. Consider: product opportunities, technical feasibility, competitive positioning, or regulatory compliance needs.
             
-            ## Internal Spotlight 
-            (If none provided, suggest a small, safe internal experiment)
+            ## Implementation Focus
+            (Weekly insight) Practical advice for implementing AI in trade finance products. Topics could include: integration patterns, data requirements, risk management, customer adoption strategies, or technical best practices.
             
             ## Quick Hits
-            (3 bullet points)
+            (3 bullet points) Brief updates on: AI tools/frameworks, regulatory updates, competitor moves, or industry partnerships relevant to trade finance AI.
             
-            ## CTA for pilots/polls
-            (Call to action)
+            ## Next Steps
+            Suggest 1-2 specific actions the team should consider: research topics, pilot opportunities, vendor evaluations, or strategic discussions based on this week's intelligence.
 
             Rules:
             - DO NOT include a title or header - the title is already provided.
             - Use proper Markdown headings with ## for each section
             - Start directly with the first section content
             - Include the source link next to each claim (e.g., [Source](URL)).
-            - If you are uncertain about a claim, exclude it or mark it clearly.
+            - Focus on business impact and actionability for a trade finance SaaS company
+            - When mentioning technical concepts, AI models, or industry terms, provide brief context (e.g., "LLMs (Large Language Models, like ChatGPT)" or "KYC (Know Your Customer compliance)")
+            - Explain why developments matter, not just what happened
+            - Be specific about implications rather than generic
+            - If uncertain about a claim, exclude it or mark it clearly
             - No confidential info. No personal data.
         """).strip(),
         "items": selected_items
@@ -199,7 +205,7 @@ def enforce_quality(md_text: str):
     links = re.findall(r"https?://\S+", md_text)
     if len(links) < REQUIRED_MIN_LINKS:
         die(f"Draft contains too few links ({len(links)}). Require at least {REQUIRED_MIN_LINKS} source URLs.")
-    for h in ("AI in Trade Finance", "Tip of the Week", "Quick Hits"):
+    for h in ("Market Intelligence", "What This Means for Us", "Quick Hits"):
         if h.lower() not in md_text.lower():
             die(f"Draft missing required section heading: '{h}'.")
 
@@ -212,16 +218,24 @@ def add_emoji_for_heading(title: str) -> str:
     t = title.strip().lower()
     
     # Main newsletter sections
+    if "market intelligence" in t:
+        return f"📊 {title}"
+    if "what this means for us" in t:
+        return f"🎯 {title}"
+    if "implementation focus" in t:
+        return f"💡 {title}"
+    if "quick hits" in t:
+        return f"⚡ {title}"
+    if "next steps" in t:
+        return f"📋 {title}"
+    
+    # Legacy sections (for compatibility)
     if "ai in trade finance" in t:
         return f"🚀 {title}"
     if "tip of the week" in t:
         return f"💡 {title}"
     if "internal spotlight" in t:
         return f"🔍 {title}"
-    if "quick hits" in t:
-        return f"⚡ {title}"
-    if "what this means for us" in t:
-        return f"🎯 {title}"
     if "cta" in t or "call to action" in t or "pilots" in t or "polls" in t:
         return f"📋 {title}"
     
@@ -251,7 +265,7 @@ def convert_md_to_slack(markdown: str) -> str:
         if m:
             title = m.group(2).strip()
             # Don't add emojis if they're already present
-            if not title.startswith(('🚀', '💡', '🔍', '⚡', '🎯', '📋', '🗞️', '💰', '🤖', '📈')):
+            if not title.startswith(('📊', '🎯', '💡', '⚡', '📋', '🚀', '🔍', '🗞️', '💰', '🤖', '📈')):
                 title = add_emoji_for_heading(title)
             out.append(f"*{title}*")
             continue
