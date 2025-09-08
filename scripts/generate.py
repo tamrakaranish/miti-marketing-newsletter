@@ -53,19 +53,7 @@ MAX_WORDS = 400
 REQUIRED_MIN_LINKS = 3
 
 # Custom message section (can be edited for special announcements)
-CUSTOM_MESSAGE = """
-🚀 **Major Newsletter Upgrades - Issue #2**
-
-After our first newsletter, we've already implemented massive improvements to deliver more strategic value:
-**📊 Better Content Curation**: Added premium sources (TLDR AI, Fintech, Product) and enhanced feed validation for higher-quality, more relevant content.
-**👥 Multi-Department Focus**: Content structured for Sales, Marketing, Product, Customer Success, and Engineering - with role-specific insights everyone can act on.
-**🎓 Educational Approach**: Now includes context for technical terms and explains WHY developments matter, making complex AI/fintech concepts accessible to all team members.
-**💰 Business Impact First**: Prioritizes revenue opportunities, competitive risks, and customer implications over technical details.
-**📊 Source Diversity**: Balanced mix of business news, research, and industry trends (no more academic paper overload).
-**🎯 Actionable Intelligence**: Every section includes specific, time-bound recommendations with clear ownership and effort estimates.
-
-The newsletter now serves as a strategic tool for customer conversations, competitive positioning, and informed decision-making across all teams. **Keep the feedback coming** - what business scenarios would you like covered?
-"""
+CUSTOM_MESSAGE = ""
 
 # ----------------------------
 # Helpers
@@ -121,17 +109,20 @@ def fetch_items(feeds):
 
 def rank_items(items, limit=12):
     KEYS = (
-        # Core AI
-        "ai", "artificial intelligence", "model", "models", "llm", "genai", "machine learning",
-        # Trade finance and banking
+        # Trade finance and banking (highest priority for marketing audience)
         "trade finance", "trade-finance", "trade", "commodity", "letter of credit", "lc", "bill of lading",
         "swift", "iso 20022", "payments", "cross-border", "fx", "treasury", "bank", "banking", "supply chain finance",
-        "invoice finance", "factoring",
+        "invoice finance", "factoring", "documentary credit", "export finance", "import finance",
+        # Fintech innovation
+        "fintech", "financial technology", "digital payments", "blockchain", "cryptocurrency", "digital banking", 
+        "neo bank", "embedded finance", "api", "open banking",
+        # AI in finance context
+        "ai", "artificial intelligence", "machine learning", "automation", "digital transformation",
+        # Market and business focus
+        "market", "customer", "growth", "revenue", "partnership", "acquisition", "funding", "investment",
         # Risk, compliance, regulation
         "aml", "kyc", "sanctions", "ofac", "basel", "governance", "risk", "compliance", "regtech", "fincrime",
-        "regulation", "regulatory", "eu ai act",
-        # Business context
-        "customer", "b2b", "saas"
+        "regulation", "regulatory"
     )
     
     # Score all items
@@ -161,11 +152,11 @@ def summarize_with_openai(selected_items):
     api_key = require_api_key()
 
     system_msg = (
-        "You produce a short internal AI newsletter for a trade-finance SaaS company. "
-        "Your audience includes executives, product managers, sales, marketing, customer success, and engineers - many are NOT technical. "
-        "Make content accessible to ALL roles by explaining business impact, not just technical details. "
-        "Focus on practical implications, timelines, and resource requirements. Avoid heavy jargon. "
-        "Be factual. Include source links next to claims. Avoid speculation and personal data."
+        "You produce a trade finance and fintech newsletter for a marketing audience. "
+        "Your readers include existing customers, potential clients, industry stakeholders, and business decision-makers. "
+        "Focus on market trends, business opportunities, industry developments, and competitive landscape. "
+        "Write in a professional, engaging tone that demonstrates thought leadership and market expertise. "
+        "Emphasize business value, market implications, and strategic opportunities. Be factual and include source links."
     )
     user_payload = {
         "date": DATE,
@@ -173,19 +164,19 @@ def summarize_with_openai(selected_items):
             Write EXACTLY 350-400 words total using proper Markdown headings for sections:
             
             ## Market Intelligence
-            (1-2 items) Major AI/fintech developments that could impact our trade finance business. Focus on: customer needs, competitive threats, regulatory changes, or new market opportunities. Explain WHY this matters to our business, not just WHAT happened.
+            (1-2 items) Key trade finance and fintech developments shaping the industry. Focus on market trends, regulatory changes, technology adoption, and emerging opportunities. Explain the broader market implications and what this means for industry players.
             
-            ## Business Impact
-            Translate developments into clear business implications. Include: revenue opportunities, cost savings, competitive risks, customer experience improvements, or compliance requirements. Use plain language - avoid technical jargon.
+            ## Industry Impact
+            Analyze how these developments affect the trade finance ecosystem. Include: market opportunities, competitive dynamics, customer expectations, regulatory requirements, and technology adoption trends. Focus on strategic implications for businesses in this space.
             
-            ## What Different Teams Should Know
-            Practical implications for different roles: Sales (customer conversations), Marketing (positioning), Product (roadmap priorities), Customer Success (client questions), Engineering (technical requirements). Make it actionable for non-technical staff.
+            ## Customer Opportunities
+            Highlight how these trends create opportunities for trade finance companies and their clients. Include: new service possibilities, efficiency gains, cost reductions, risk mitigation, and enhanced customer experiences. Make it relevant for decision-makers.
             
-            ## Market Pulse
-            (3 bullet points) Brief updates on: competitor moves, customer trends, regulatory updates, or partnership opportunities in trade finance AI. Focus on business relevance, not technical details.
+            ## Competitive Landscape
+            (3 bullet points) Brief updates on: competitor moves, partnership announcements, funding rounds, product launches, or strategic initiatives in trade finance and fintech. Focus on market positioning and strategic implications.
             
-            ## Recommended Actions
-            1-2 specific, recommended actions with clear owners: sales enablement needs, customer research, competitive analysis, partnership exploration, or product evaluations.
+            ## Market Outlook
+            1-2 forward-looking insights or strategic recommendations based on these developments. Focus on market direction, emerging opportunities, or actions organizations should consider to stay competitive in the evolving trade finance landscape.
 
             Rules:
             - DO NOT include a title or header - the title is already provided.
@@ -249,7 +240,7 @@ def enforce_quality(md_text: str):
     if len(links) < REQUIRED_MIN_LINKS:
         die(f"Draft contains too few links ({len(links)}). Require at least {REQUIRED_MIN_LINKS} source URLs.")
     
-    for h in ("Market Intelligence", "Business Impact", "What Different Teams Should Know"):
+    for h in ("Market Intelligence", "Industry Impact", "Customer Opportunities", "Competitive Landscape", "Market Outlook"):
         if h.lower() not in md_text.lower():
             die(f"Draft missing required section heading: '{h}'.")
     
@@ -352,7 +343,7 @@ def add_emojis_to_markdown(markdown: str) -> str:
 # ---------- Write outputs ----------
 def write_outputs(md_body: str):
     OUTDIR.mkdir(parents=True, exist_ok=True)
-    header = f"# 🗞️ MitiMind – {DATE}\n\n"
+    header = f"🗞️ *Trade Finance Weekly* – {DATE}\n\n"
     
     # Add custom message if defined
     custom_message_section = ""
@@ -363,22 +354,17 @@ def write_outputs(md_body: str):
     # Add emojis to headings in the body content
     md_body_with_emojis = add_emojis_to_markdown(md_body)
     
-    md_full = header + custom_message_section + md_body_with_emojis + "\n\n— Auto‑draft by AI agent, please contact the EMs for feedback.\n"
+    md_full = header + custom_message_section + md_body_with_emojis + "\n\n— Auto-generated newsletter for Product Marketing review\n"
     
     # Quality check on full assembled text
     print("[i] Enforcing quality gates on assembled newsletter…")
     enforce_quality(md_full)
     
-    # Markdown for PR/Confluence
-    with OUT_MD.open("w", encoding="utf-8") as f:
-        f.write(md_full)
-    print(f"[OK] Markdown written to {OUT_MD}")
-    
     # Slack-friendly text (emojis already applied via convert_md_to_slack)
     slack_text = convert_md_to_slack(md_full)
     with OUT_SLACK.open("w", encoding="utf-8") as f:
         f.write(slack_text)
-    print(f"[OK] Slack text written to {OUT_SLACK}")
+    print(f"[OK] Slack newsletter written to {OUT_SLACK}")
 
 # ----------------------------
 # Main
