@@ -1,5 +1,5 @@
 feeds:
-  # Trade Finance & Fintech
+  # Trade Finance & Fintech - Focused sources for Product Marketing
   - name: Finextra
     url: https://www.finextra.com/rss/headlines.aspx
   - name: Trade Finance Global
@@ -7,26 +7,4 @@ feeds:
   - name: TLDR Fintech
     url: https://tldr.tech/api/rss/fintech
   
-  # AI & Technology
-  - name: MIT Technology Review AI
-    url: https://www.technologyreview.com/feed/
-  - name: OpenAI Blog
-    url: https://openai.com/blog/rss.xml
-  - name: Microsoft AI Blog
-    url: https://blogs.microsoft.com/ai/feed/
-  - name: Hugging Face Blog
-    url: https://huggingface.co/blog/feed.xml
-  - name: TLDR AI
-    url: https://tldr.tech/api/rss/ai
-  
-  # AI Research Papers
-  - name: arXiv cs.AI
-    url: https://arxiv.org/rss/cs.AI
-  - name: arXiv cs.LG
-    url: https://arxiv.org/rss/cs.LG
-  
-  # Business & Strategy
-  - name: a16z Future
-    url: https://future.com/feed/
-  - name: TLDR Product
-    url: https://tldr.tech/api/rss/product
+  # Additional sources will be provided by Product Marketing team

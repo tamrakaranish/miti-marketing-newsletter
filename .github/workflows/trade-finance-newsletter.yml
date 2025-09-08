@@ -1,0 +1,109 @@
+name: Generate Trade Finance Newsletter
+
+on:
+  schedule:
+    # Bi-weekly on Tuesdays at 9:00 AM UTC
+    # Note: GitHub Actions doesn't support bi-weekly directly, so this runs weekly
+    # You can manually skip weeks or add logic to check week number
+    - cron: "0 9 * * 2"
+  
+  workflow_dispatch:
+    inputs:
+      manual_mode:
+        description: 'Generate urgent newsletter (adds timestamp)'
+        required: false
+        default: false
+        type: boolean
+
+jobs:
+  generate-newsletter:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Check if bi-weekly schedule
+      id: biweekly_check
+      run: |
+        # Get current week number
+        WEEK_NUM=$(date +%V)
+        # Check if week number is even (adjust logic as needed for your start date)
+        if [ $((WEEK_NUM % 2)) -eq 0 ]; then
+          echo "should_run=true" >> $GITHUB_OUTPUT
+          echo "This is a bi-weekly newsletter week (week $WEEK_NUM)"
+        else
+          echo "should_run=false" >> $GITHUB_OUTPUT
+          echo "Skipping this week (week $WEEK_NUM) - not a bi-weekly newsletter week"
+        fi
+        
+        # Always run if manually triggered
+        if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+          echo "should_run=true" >> $GITHUB_OUTPUT
+          echo "Manual trigger - overriding bi-weekly check"
+        fi
+      
+    - name: Set up Python
+      if: steps.biweekly_check.outputs.should_run == 'true'
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+        
+    - name: Install dependencies
+      if: steps.biweekly_check.outputs.should_run == 'true'
+      run: |
+        pip install -r requirements.txt
+        
+    - name: Generate newsletter
+      if: steps.biweekly_check.outputs.should_run == 'true'
+      env:
+        OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        MANUAL_MODE: ${{ github.event.inputs.manual_mode == 'true' && '1' || '0' }}
+      run: |
+        cd scripts
+        python generate.py
+        
+    - name: Post to Slack
+      if: steps.biweekly_check.outputs.should_run == 'true'
+      env:
+        SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+        SLACK_CHANNEL: ${{ vars.SLACK_CHANNEL }}
+      run: |
+        # Check if SLACK_CHANNEL is set
+        if [ -z "$SLACK_CHANNEL" ]; then
+          echo "ERROR: SLACK_CHANNEL GitHub variable is not set!"
+          echo "Please set the SLACK_CHANNEL variable in Settings → Secrets and Variables → Actions → Variables"
+          echo "Example value: #anish-ai-new"
+          exit 1
+        fi
+        
+        echo "Posting to Slack channel: $SLACK_CHANNEL"
+        # Find the most recent newsletter file
+        NEWSLETTER_FILE=$(ls -t newsletter/*_slack.txt | head -n1)
+        
+        if [ -f "$NEWSLETTER_FILE" ]; then
+          echo "Posting newsletter from: $NEWSLETTER_FILE"
+          
+          # Read the newsletter content
+          NEWSLETTER_CONTENT=$(cat "$NEWSLETTER_FILE")
+          
+          # Post to Slack using curl
+          curl -X POST https://slack.com/api/chat.postMessage \
+            -H "Authorization: Bearer $SLACK_BOT_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d "{
+              \"channel\": \"$SLACK_CHANNEL\",
+              \"text\": $(echo "$NEWSLETTER_CONTENT" | jq -Rs .),
+              \"unfurl_links\": false,
+              \"unfurl_media\": false
+            }"
+        else
+          echo "No newsletter file found!"
+          exit 1
+        fi
+        
+    - name: Archive newsletter
+      if: success() && steps.biweekly_check.outputs.should_run == 'true'
+      run: |
+        echo "Newsletter successfully generated and posted to Slack"
+        echo "File: $(ls -t newsletter/*_slack.txt | head -n1)"

@@ -32,31 +32,19 @@ SOURCES_YML = ROOT / "sources.yml"
 OUTDIR = ROOT / "newsletter"
 DATE = dt.date.today().isoformat()
 
-# Check if running in test mode (set TEST_MODE=1 to generate test files)
-TEST_MODE = os.environ.get("TEST_MODE", "0") == "1"
+# Check if running in manual mode (for urgent newsletters)
 MANUAL_MODE = os.environ.get("MANUAL_MODE", "0") == "1"
 
-if TEST_MODE:
-    # Add timestamp to make test files unique and clearly identifiable
+if MANUAL_MODE:
+    # Manual generation mode - for urgent newsletters
     timestamp = dt.datetime.now().strftime("%H%M%S")
-    # Add microseconds to prevent collision
     microseconds = dt.datetime.now().microsecond // 1000  # 3 digits
-    OUT_MD = OUTDIR / f"{DATE}-test-{timestamp}-{microseconds:03d}.md"
-    OUT_SLACK = OUTDIR / f"{DATE}-test-{timestamp}-{microseconds:03d}_slack.txt"
-    print(f"[i] TEST MODE: Generating test files with suffix -test-{timestamp}-{microseconds:03d}")
-elif MANUAL_MODE:
-    # Manual production mode - won't auto-publish, requires manual publish workflow
-    timestamp = dt.datetime.now().strftime("%H%M%S")
-    # Add microseconds to prevent collision
-    microseconds = dt.datetime.now().microsecond // 1000  # 3 digits
-    OUT_MD = OUTDIR / f"{DATE}-manual-{timestamp}-{microseconds:03d}.md"
     OUT_SLACK = OUTDIR / f"{DATE}-manual-{timestamp}-{microseconds:03d}_slack.txt"
-    print(f"[i] MANUAL MODE: Generating manual files with suffix -manual-{timestamp}-{microseconds:03d}")
+    print(f"[i] MANUAL MODE: Generating manual newsletter with suffix -manual-{timestamp}-{microseconds:03d}")
 else:
-    # Scheduled mode - will auto-publish when merged to main
-    OUT_MD = OUTDIR / f"{DATE}.md"
+    # Scheduled mode - bi-weekly on Tuesdays
     OUT_SLACK = OUTDIR / f"{DATE}_slack.txt"
-    print(f"[i] SCHEDULED MODE: Generating production files (will auto-publish)")
+    print(f"[i] SCHEDULED MODE: Generating bi-weekly newsletter for direct publishing")
 
 OPENAI_API_URL = "https://api.openai.com/v1/chat/completions"
 OPENAI_MODEL = "gpt-5-mini"   # upgraded model for better analysis
