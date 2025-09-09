@@ -1,10 +1,30 @@
 feeds:
-  # Trade Finance & Fintech - Focused sources for Product Marketing
-  - name: Finextra
-    url: https://www.finextra.com/rss/headlines.aspx
+  # Trade Finance News
+  - name: GTR
+    url: https://www.gtreview.com/rss
   - name: Trade Finance Global
-    url: https://www.tradefinanceglobal.com/feed/
-  - name: TLDR Fintech
-    url: https://tldr.tech/api/rss/fintech
+    url: https://www.tradefinanceglobal.com/posts/category/news/feed/
+  - name: Trade Treasury Payments
+    url: https://tradetreasurypayments.com/posts/category/news/feed
+  - name: TXF
+    url: https://www.txfnews.com/rss
   
-  # Additional sources will be provided by Product Marketing team
+  # Supply Chain Finance News
+  - name: Supply Chain Digital
+    url: https://supplychaindigital.com/feed
+  
+  # Treasury News
+  - name: Treasury Management
+    url: https://treasury-management.com/feed
+  
+  # Broader Fintech/Finance News
+  - name: Finextra Research
+    url: https://www.finextra.com/rss/headlines.aspx
+  - name: Fintech Finance News
+    url: https://ffnews.com/feed/
+  - name: PYMNTS
+    url: https://www.pymnts.com/feed/
+  - name: The Banker
+    url: https://www.thebanker.com/rss
+  - name: Financial Times Global Trade
+    url: https://www.ft.com/global-trade?format=rss

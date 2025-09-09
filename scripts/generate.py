@@ -99,29 +99,52 @@ def fetch_items(feeds):
 
 def rank_items(items, limit=12):
     KEYS = (
-        # Trade finance and banking (highest priority for marketing audience)
-        "trade finance", "trade-finance", "trade", "commodity", "letter of credit", "lc", "bill of lading",
-        "swift", "iso 20022", "payments", "cross-border", "fx", "treasury", "bank", "banking", "supply chain finance",
-        "invoice finance", "factoring", "documentary credit", "export finance", "import finance",
-        # Fintech innovation
-        "fintech", "financial technology", "digital payments", "blockchain", "cryptocurrency", "digital banking", 
-        "neo bank", "embedded finance", "api", "open banking",
-        # AI in finance context
-        "ai", "artificial intelligence", "machine learning", "automation", "digital transformation",
-        # Market and business focus
-        "market", "customer", "growth", "revenue", "partnership", "acquisition", "funding", "investment",
-        # Risk, compliance, regulation
-        "aml", "kyc", "sanctions", "ofac", "basel", "governance", "risk", "compliance", "regtech", "fincrime",
-        "regulation", "regulatory"
+        # Core trade finance terms (highest priority)
+        "trade finance", "trade-finance", "letter of credit", "lc", "documentary credit", "bill of lading",
+        "export finance", "export financing", "import finance", "export lc", "export letter of credit",
+        "bank guarantee", "digital guarantee", "trade credit", "guarantees", "trade insurance",
+        
+        # International trade activities
+        "international trade", "global trade", "export", "exporters", "trade flows", "cross-border trade",
+        "export compliance", "export credit insurance", "export fraud",
+        
+        # Trade regulations and policies  
+        "tariff", "sanctions", "wto ruling", "custom regulation", "export control", "incoterms",
+        "trade policy", "trade finance regulation", "trade finance policy",
+        
+        # Supply chain and logistics
+        "shipping delays", "freight rates", "logistics costs", "global supply chain", "supply chain finance",
+        
+        # Financial risk and management
+        "risk management", "payment risk", "currency risk", "working capital", "geopolitical risk",
+        "accounts receivable", "receivables", "receivables financing", "documentation errors", "trade finance gap",
+        
+        # Modern trade finance trends
+        "green trade", "digital trade", "ai in trade", "treasury", "swift", "iso 20022",
+        
+        # General fintech (lower priority)
+        "fintech", "financial technology", "digital payments", "api", "open banking", "blockchain"
+    )
+    
+    # Keywords to avoid or penalize
+    AVOID_KEYS = (
+        "stock trading", "day trading", "forex trading", "crypto", "cryptocurrency", "bitcoin",
+        "options trading", "retail trading", "investment trading", "algorithmic trading"
     )
     
     # Score all items
     scored = []
     for it in items:
         text = (it["title"] + " " + it["summary"]).lower()
+        
+        # Positive scoring for relevant keywords
         score = sum(k in text for k in KEYS)
         if it["link"]:
             score += 1
+        
+        # Penalize items with avoided keywords (financial trading)
+        avoid_penalty = sum(k in text for k in AVOID_KEYS)
+        score = max(0, score - (avoid_penalty * 2))  # Heavy penalty for avoid keywords
         
         # Penalize arXiv to ensure source diversity (they tend to dominate with academic keywords)
         if "arxiv.org" in it.get("link", ""):
@@ -173,13 +196,15 @@ def summarize_with_openai(selected_items):
             - Use proper Markdown headings with ## for each section
             - Start directly with the first section content
             - Include the source link next to each claim (e.g., [Source](URL)).
-            - Focus on business impact and practical actions for ALL departments, not just engineering
-            - EDUCATIONAL APPROACH: Always explain technical terms and concepts in plain business language with context (e.g., "LLMs (Large Language Models like ChatGPT)", "API (software connection between systems)")
-            - Explain WHY developments matter, not just WHAT happened - include business implications and strategic significance
-            - Make complex AI/fintech concepts accessible to non-technical team members (sales, marketing, customer success)
-            - Prioritize customer impact, revenue implications, and competitive positioning
-            - Avoid academic research unless it has immediate business relevance
-            - Make content useful for sales calls, customer conversations, and strategic decisions
+            - Write for a MARKETING AUDIENCE: customers, prospects, industry stakeholders, and business decision-makers
+            - PROFESSIONAL TONE: Demonstrate thought leadership and market expertise in trade finance
+            - Explain WHY developments matter for the industry - include market implications and strategic significance
+            - Focus on MARKET TRENDS, BUSINESS OPPORTUNITIES, and COMPETITIVE DYNAMICS
+            - Use trade finance terminology appropriately (letters of credit, documentary collections, trade credit, etc.)
+            - Prioritize market positioning, industry growth, partnership opportunities, and regulatory impacts
+            - Make content valuable for industry professionals making business decisions
+            - Avoid internal company perspectives - focus on broader market insights
+            - Position developments in context of global trade finance ecosystem
             - If uncertain about a claim, exclude it or mark it clearly
             - No confidential info. No personal data.
             - CRITICAL: Keep total word count between 350-400 words. Be concise and focused.
