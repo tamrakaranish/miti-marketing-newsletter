@@ -32,19 +32,9 @@ SOURCES_YML = ROOT / "sources.yml"
 OUTDIR = ROOT / "newsletter"
 DATE = dt.date.today().isoformat()
 
-# Check if running in manual mode (for urgent newsletters)
-MANUAL_MODE = os.environ.get("MANUAL_MODE", "0") == "1"
-
-if MANUAL_MODE:
-    # Manual generation mode - for urgent newsletters
-    timestamp = dt.datetime.now().strftime("%H%M%S")
-    microseconds = dt.datetime.now().microsecond // 1000  # 3 digits
-    OUT_SLACK = OUTDIR / f"{DATE}-manual-{timestamp}-{microseconds:03d}_slack.txt"
-    print(f"[i] MANUAL MODE: Generating manual newsletter with suffix -manual-{timestamp}-{microseconds:03d}")
-else:
-    # Scheduled mode - bi-weekly on Tuesdays
-    OUT_SLACK = OUTDIR / f"{DATE}_slack.txt"
-    print(f"[i] SCHEDULED MODE: Generating bi-weekly newsletter for direct publishing")
+# Simple file naming - always use clean date format
+OUT_SLACK = OUTDIR / f"{DATE}_slack.txt"
+print(f"[i] Generating newsletter: {OUT_SLACK.name}")
 
 OPENAI_API_URL = "https://api.openai.com/v1/chat/completions"
 OPENAI_MODEL = "gpt-5-mini"   # upgraded model for better analysis
@@ -256,9 +246,19 @@ BULLET_MD = re.compile(r"^\s*-\s+")
 def add_emoji_for_heading(title: str) -> str:
     t = title.strip().lower()
     
-    # Main newsletter sections
+    # Product Marketing newsletter sections
     if "market intelligence" in t:
         return f"📊 {title}"
+    if "industry impact" in t:
+        return f"🏭 {title}"
+    if "customer opportunities" in t:
+        return f"🎯 {title}"
+    if "competitive landscape" in t:
+        return f"🏆 {title}"
+    if "market outlook" in t:
+        return f"🔮 {title}"
+    
+    # Legacy sections (for compatibility)
     if "business impact" in t:
         return f"💰 {title}"
     if "what different teams should know" in t:

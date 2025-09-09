@@ -125,20 +125,17 @@ export OPENAI_API_KEY="your-api-key-here"
 # Generate newsletter
 cd scripts
 python generate.py
-
-# For urgent newsletters (adds timestamp)
-MANUAL_MODE=1 python generate.py
 ```
 
 ### GitHub Actions Manual Workflow
 
-#### 📰 Generate Urgent Newsletter
+#### 📰 Generate Newsletter Manually
 1. Go to **Actions → Generate Trade Finance Newsletter → Run workflow**
-2. Check **"Generate urgent newsletter"** for immediate posting
+2. Click **"Run workflow"** to generate and post immediately
 3. Newsletter will be generated and posted directly to configured Slack channel
 
 #### ⏰ Scheduled Newsletter
-- Runs automatically every other Tuesday at 9:00 AM UTC
+- Runs automatically every other Tuesday at 9:00 AM CET
 - No manual intervention required
 - Posts directly to configured Slack channel
 

@@ -2,18 +2,12 @@ name: Generate Trade Finance Newsletter
 
 on:
   schedule:
-    # Bi-weekly on Tuesdays at 9:00 AM UTC
+    # Bi-weekly on Tuesdays at 9:00 AM CET (8:00 AM UTC)
     # Note: GitHub Actions doesn't support bi-weekly directly, so this runs weekly
-    # You can manually skip weeks or add logic to check week number
-    - cron: "0 9 * * 2"
+    # Bi-weekly logic implemented via week number check below
+    - cron: "0 8 * * 2"
   
   workflow_dispatch:
-    inputs:
-      manual_mode:
-        description: 'Generate urgent newsletter (adds timestamp)'
-        required: false
-        default: false
-        type: boolean
 
 jobs:
   generate-newsletter:
@@ -26,21 +20,27 @@ jobs:
     - name: Check if bi-weekly schedule
       id: biweekly_check
       run: |
-        # Get current week number
+        # Get current week number (ISO week)
         WEEK_NUM=$(date +%V)
-        # Check if week number is even (adjust logic as needed for your start date)
+        CURRENT_DATE=$(date '+%Y-%m-%d')
+        
+        echo "Current date: $CURRENT_DATE"
+        echo "Current ISO week number: $WEEK_NUM"
+        
+        # Bi-weekly schedule: Run on even week numbers
+        # Week 2, 4, 6, 8, 10, etc. of the year
         if [ $((WEEK_NUM % 2)) -eq 0 ]; then
           echo "should_run=true" >> $GITHUB_OUTPUT
-          echo "This is a bi-weekly newsletter week (week $WEEK_NUM)"
+          echo "✅ This is a bi-weekly newsletter week (week $WEEK_NUM) - RUNNING"
         else
           echo "should_run=false" >> $GITHUB_OUTPUT
-          echo "Skipping this week (week $WEEK_NUM) - not a bi-weekly newsletter week"
+          echo "⏭️ Skipping this week (week $WEEK_NUM) - not a bi-weekly newsletter week"
         fi
         
         # Always run if manually triggered
         if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
           echo "should_run=true" >> $GITHUB_OUTPUT
-          echo "Manual trigger - overriding bi-weekly check"
+          echo "🚀 Manual trigger - running newsletter generation"
         fi
       
     - name: Set up Python
@@ -58,7 +58,6 @@ jobs:
       if: steps.biweekly_check.outputs.should_run == 'true'
       env:
         OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-        MANUAL_MODE: ${{ github.event.inputs.manual_mode == 'true' && '1' || '0' }}
       run: |
         cd scripts
         python generate.py
