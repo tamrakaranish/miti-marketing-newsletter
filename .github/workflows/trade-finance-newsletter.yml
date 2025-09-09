@@ -77,8 +77,18 @@ jobs:
         fi
         
         echo "Posting to Slack channel: $SLACK_CHANNEL"
-        # Find the most recent newsletter file
-        NEWSLETTER_FILE=$(ls -t newsletter/*_slack.txt | head -n1)
+        
+        # Create newsletter directory if it doesn't exist
+        mkdir -p newsletter
+        
+        # Find the most recent newsletter file with safety check
+        NEWSLETTER_FILE=$(find newsletter -name "*_slack.txt" -type f | sort -t/ -k2 | tail -n1)
+        
+        if [ -z "$NEWSLETTER_FILE" ]; then
+          echo "ERROR: No newsletter file found in newsletter/ directory!"
+          echo "Expected format: newsletter/YYYY-MM-DD_slack.txt"
+          exit 1
+        fi
         
         if [ -f "$NEWSLETTER_FILE" ]; then
           echo "Posting newsletter from: $NEWSLETTER_FILE"

@@ -193,7 +193,7 @@ def summarize_with_openai(selected_items):
 
             Rules:
             - DO NOT include a title or header - the title is already provided.
-            - Use proper Markdown headings with ## for each section
+            - Use proper Markdown headings with ## for each section (NO EMOJIS in headings)
             - Start directly with the first section content
             - Include the source link next to each claim (e.g., [Source](URL)).
             - Write for a MARKETING AUDIENCE: customers, prospects, industry stakeholders, and business decision-makers
@@ -379,7 +379,7 @@ def write_outputs(md_body: str):
     # Add emojis to headings in the body content
     md_body_with_emojis = add_emojis_to_markdown(md_body)
     
-    md_full = header + custom_message_section + md_body_with_emojis + "\n\n— Auto-generated newsletter for Product Marketing review\n"
+    md_full = header + custom_message_section + md_body_with_emojis + "\n\n_— Auto-generated newsletter for Product Marketing review_\n"
     
     # Quality check on full assembled text
     print("[i] Enforcing quality gates on assembled newsletter…")

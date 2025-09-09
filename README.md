@@ -31,7 +31,7 @@ flowchart LR
 ### Generation Modes
 
 #### **⏰ Scheduled Mode (Bi-weekly)**
-1. **Bi-weekly Trigger** - Every other Tuesday at 9:00 AM UTC
+1. **Bi-weekly Trigger** - Every other Tuesday at 9:00 AM CET (8:00 AM UTC)
 2. **Creates**: `newsletter/2025-01-15_slack.txt` (Slack format)
 3. **Auto-posts** directly to Slack channel
 4. **Best for**: Regular bi-weekly newsletters
