@@ -1,21 +1,14 @@
 feeds:
   # Trade Finance News
   - name: GTR
-    url: https://www.gtreview.com/rss
+    url: https://www.gtreview.com/feed
   - name: Trade Finance Global
     url: https://www.tradefinanceglobal.com/posts/category/news/feed/
   - name: Trade Treasury Payments
     url: https://tradetreasurypayments.com/posts/category/news/feed
   - name: TXF
     url: https://www.txfnews.com/rss
-  
-  # Supply Chain Finance News
-  - name: Supply Chain Digital
-    url: https://supplychaindigital.com/feed
-  
-  # Treasury News
-  - name: Treasury Management
-    url: https://treasury-management.com/feed
+
   
   # Broader Fintech/Finance News
   - name: Finextra Research
@@ -24,7 +17,5 @@ feeds:
     url: https://ffnews.com/feed/
   - name: PYMNTS
     url: https://www.pymnts.com/feed/
-  - name: The Banker
-    url: https://www.thebanker.com/rss
   - name: Financial Times Global Trade
     url: https://www.ft.com/global-trade?format=rss
