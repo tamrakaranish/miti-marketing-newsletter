@@ -152,8 +152,46 @@ def rank_items(items, limit=12):
             
         scored.append((score, it))
     
+    # Sort by score first
     scored.sort(key=lambda x: x[0], reverse=True)
-    return [it for _, it in scored[:limit]]
+    
+    # Apply source diversity selection - ensure no single source dominates
+    selected = []
+    source_count = {}
+    
+    for score, item in scored:
+        if len(selected) >= limit:
+            break
+            
+        # Extract source from the item (usually in feed metadata or link domain)
+        source = item.get("source", "")
+        if not source and item.get("link"):
+            # Extract domain as source identifier
+            try:
+                from urllib.parse import urlparse
+                source = urlparse(item["link"]).netloc.replace("www.", "")
+            except:
+                source = "unknown"
+        
+        # Limit per source: max 3 items from any single source
+        current_count = source_count.get(source, 0)
+        if current_count < 3:
+            selected.append(item)
+            source_count[source] = current_count + 1
+    
+    # If we didn't get enough items due to source limits, fill with remaining high-score items
+    if len(selected) < limit:
+        remaining_needed = limit - len(selected)
+        already_selected_links = {item.get("link") for item in selected}
+        
+        for score, item in scored:
+            if len(selected) >= limit:
+                break
+            if item.get("link") not in already_selected_links:
+                selected.append(item)
+                already_selected_links.add(item.get("link"))
+    
+    return selected[:limit]
 
 def require_api_key() -> str:
     api_key = os.environ.get("OPENAI_API_KEY")
@@ -177,35 +215,58 @@ def summarize_with_openai(selected_items):
             Write EXACTLY 350-400 words total using proper Markdown headings for sections:
             
             ## Market Intelligence
-            (1-2 items) Key trade finance and fintech developments shaping the industry. Focus on market trends, regulatory changes, technology adoption, and emerging opportunities. Explain the broader market implications and what this means for industry players.
+            Write 1-2 sentences summarizing the key trend or development theme, then list 2-3 specific news items as bullet points with source attribution.
+            
+            Format:
+            Brief analytical summary explaining the market trend and its significance.
+            
+            • Specific headline or development with key details - Source Name
+            • Another headline with important context - Source Name
+            • Third item if relevant - Source Name
             
             ## Industry Impact
-            Analyze how these developments affect the trade finance ecosystem. Include: market opportunities, competitive dynamics, customer expectations, regulatory requirements, and technology adoption trends. Focus on strategic implications for businesses in this space.
+            Write 1-2 sentences analyzing how these developments affect the trade finance ecosystem, then list 2-3 specific impacts as bullet points.
+            
+            Format:
+            Summary of how trends are reshaping the industry and competitive dynamics.
+            
+            • Specific impact on market players or business models - Source Name  
+            • Regulatory or operational change affecting the sector - Source Name
+            • Technology adoption or partnership trend - Source Name
             
             ## Customer Opportunities
-            Highlight how these trends create opportunities for trade finance companies and their clients. Include: new service possibilities, efficiency gains, cost reductions, risk mitigation, and enhanced customer experiences. Make it relevant for decision-makers.
+            Write 1-2 sentences highlighting how trends create opportunities, then list 2-3 specific opportunities as bullet points.
+            
+            Format:
+            Summary of emerging opportunities for trade finance companies and their clients.
+            
+            • Specific opportunity or service enhancement - Source Name
+            • Cost reduction or efficiency gain - Source Name  
+            • New market or customer segment opening - Source Name
             
             ## Competitive Landscape
-            (3 bullet points) Brief updates on: competitor moves, partnership announcements, funding rounds, product launches, or strategic initiatives in trade finance and fintech. Focus on market positioning and strategic implications.
+            Brief summary sentence, then 3 bullet points with specific competitor moves, funding, or strategic initiatives.
+            
+            • Company funding round or partnership announcement - Source Name
+            • Product launch or strategic initiative - Source Name
+            • Market positioning or expansion move - Source Name
             
             ## Market Outlook
-            1-2 forward-looking insights or strategic recommendations based on these developments. Focus on market direction, emerging opportunities, or actions organizations should consider to stay competitive in the evolving trade finance landscape.
+            1-2 forward-looking insights based on the developments above. Focus on market direction and strategic recommendations.
 
-            Rules:
-            - DO NOT include a title or header - the title is already provided.
+            CRITICAL FORMATTING RULES:
+            - DO NOT include a title or header - the title is already provided
             - Use proper Markdown headings with ## for each section (NO EMOJIS in headings)
             - Start directly with the first section content
-            - Include the source link next to each claim (e.g., [Source](URL)).
-            - Write for a MARKETING AUDIENCE: customers, prospects, industry stakeholders, and business decision-makers
-            - PROFESSIONAL TONE: Demonstrate thought leadership and market expertise in trade finance
-            - Explain WHY developments matter for the industry - include market implications and strategic significance
-            - Focus on MARKET TRENDS, BUSINESS OPPORTUNITIES, and COMPETITIVE DYNAMICS
+            - Use bullet format: • [headline/detail] - [Source Name] (not [Source](URL))
+            - PRIORITIZE SOURCE DIVERSITY: Avoid using the same source more than twice across all sections
+            - If multiple sources cover the same story, reference the non-paywalled source
+            - Write for MARKETING AUDIENCE: customers, prospects, industry stakeholders, business decision-makers
+            - PROFESSIONAL TONE: Demonstrate thought leadership and market expertise
+            - Focus on SCANNABLE FORMAT: summary + bullets for easy reading
             - Use trade finance terminology appropriately (letters of credit, documentary collections, trade credit, etc.)
-            - Prioritize market positioning, industry growth, partnership opportunities, and regulatory impacts
-            - Make content valuable for industry professionals making business decisions
-            - Avoid internal company perspectives - focus on broader market insights
+            - Make content valuable for quick scanning and decision-making
             - Position developments in context of global trade finance ecosystem
-            - If uncertain about a claim, exclude it or mark it clearly
             - No confidential info. No personal data.
             - CRITICAL: Keep total word count between 350-400 words. Be concise and focused.
         """).strip(),

@@ -105,12 +105,14 @@ Current sources focus on trade finance and fintech:
 *Product Marketing team will provide additional sources as needed.*
 
 #### Newsletter Template
-The AI generates structured content with these sections:
-1. **Market Intelligence** - Key trade finance and fintech developments
-2. **Industry Impact** - Strategic implications for the trade finance ecosystem  
-3. **Customer Opportunities** - How trends create opportunities for businesses
-4. **Competitive Landscape** - Brief updates on competitor moves and market positioning
+The AI generates structured, scannable content with these sections:
+1. **Market Intelligence** - Brief trend summary + 2-3 news headlines with source attribution
+2. **Industry Impact** - Impact analysis + 2-3 specific effects on the trade finance ecosystem
+3. **Customer Opportunities** - Opportunity summary + 2-3 specific business opportunities
+4. **Competitive Landscape** - 3 bullet points on funding, partnerships, and strategic moves
 5. **Market Outlook** - Forward-looking insights and strategic recommendations
+
+**Format**: Each section uses summary + bullet points for easy scanning, with diverse source attribution to avoid paywall concentration.
 
 ## 🔧 Manual Execution
 
