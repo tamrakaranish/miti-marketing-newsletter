@@ -13,7 +13,7 @@ Support Product Marketing with industry intelligence by:
 ## 🚀 How It Works
 
 ```mermaid
-flowchart TD
+flowchart LR
     A["📡 RSS Feed Sources<br/>(8 Trade Finance Feeds)"] --> B["🔍 Content Fetching<br/>& Deduplication"]
     
     B --> C["📊 Content Ranking<br/>Trade Finance Keywords<br/>Source Diversity (Max 1/source)"]
