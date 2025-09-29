@@ -13,34 +13,45 @@ Support Product Marketing with industry intelligence by:
 ## 🚀 How It Works
 
 ```mermaid
-flowchart LR
-    A["Trade Finance<br/>RSS Sources"] --> B["Newsletter<br/>Generation"]
+flowchart TD
+    A["📡 RSS Feed Sources<br/>(8 Trade Finance Feeds)"] --> B["🔍 Content Fetching<br/>& Deduplication"]
     
-    B --> C["⏰ Bi-weekly<br/>(Tuesday Cron)"]
-    B --> D["🚀 Manual<br/>(Urgent News)"]
+    B --> C["📊 Content Ranking<br/>Trade Finance Keywords<br/>Source Diversity (Max 1/source)"]
     
-    C --> E["newsletter/2025-01-15_slack.txt<br/>📰 Scheduled Newsletter"]
-    D --> F["newsletter/2025-01-15-manual-HHMMSS_slack.txt<br/>🚀 Urgent Newsletter"]
+    C --> D["🤖 AI Processing<br/>OpenAI GPT-5-mini<br/>Generate Slack Format"]
     
-    E --> G["📱 Direct Post to<br/>Slack Channel"]
-    F --> G
+    D --> E["✅ Quality Validation<br/>• Format Compliance<br/>• Source Diversity<br/>• 3-5 Bullets"]
     
-    G --> H["✅ Product Marketing<br/>Review & Distribute"]
+    E --> F["📅 Trigger Modes"]
+    
+    F --> G["⏰ Bi-weekly Cron<br/>(Tuesday 9AM CET)"]
+    F --> H["🚀 Manual Trigger<br/>(GitHub Actions)"]
+    
+    G --> I["📱 Direct Slack Post<br/>SLACK_CHANNEL Variable"]
+    H --> I
+    
+    I --> J["👥 Product Marketing<br/>Review in Slack"]
+    
+    J --> K["📤 Manual Distribution<br/>External Channels"]
+    
+    style A fill:#e1f5fe
+    style D fill:#f3e5f5
+    style I fill:#e8f5e8
 ```
 
 ### Generation Modes
 
 #### **⏰ Scheduled Mode (Bi-weekly)**
 1. **Bi-weekly Trigger** - Every other Tuesday at 9:00 AM CET (8:00 AM UTC)
-2. **Creates**: `newsletter/2025-01-15_slack.txt` (Slack format)
-3. **Auto-posts** directly to Slack channel
-4. **Best for**: Regular bi-weekly newsletters
+2. **Creates**: `newsletter/2025-01-15_slack.txt` (Slack-ready format)
+3. **Auto-posts** directly to configured Slack channel
+4. **Best for**: Regular industry intelligence updates
 
-#### **🚀 Manual Mode (Urgent)**
-1. **Manual Trigger** via GitHub Actions
-2. **Creates**: `newsletter/2025-01-15-manual-HHMMSS_slack.txt`
-3. **Posts immediately** to Slack channel
-4. **Best for**: Breaking news, urgent updates
+#### **🚀 Manual Mode (On-demand)**
+1. **Manual Trigger** - Via GitHub Actions "Run workflow" button
+2. **Creates**: `newsletter/2025-01-15_slack.txt` (same format)
+3. **Posts immediately** to configured Slack channel
+4. **Best for**: Testing, urgent updates, or ad-hoc generation
 
 ### Workflow Steps
 1. **Feed Fetching** - Pulls latest content from trade finance and fintech sources
