@@ -122,9 +122,14 @@ def rank_items(items, limit=12):
         
         # Modern trade finance trends
         "green trade", "digital trade", "ai in trade", "treasury", "swift", "iso 20022",
+        "sustainable finance", "esg", "carbon credits", "trade corridor", "digitization",
+        
+        # Key players and platforms
+        "contour", "we.trade", "tradelens", "dltledgers", "komgo", "tradeix",
         
         # General fintech (lower priority)
-        "fintech", "financial technology", "digital payments", "api", "open banking", "blockchain"
+        "fintech", "financial technology", "digital payments", "api", "open banking", "blockchain",
+        "embedded finance", "b2b payments", "working capital", "invoice financing"
     )
     
     # Keywords to avoid or penalize
@@ -174,9 +179,9 @@ def rank_items(items, limit=12):
             except:
                 source = "unknown"
         
-        # Limit per source: max 3 items from any single source
+        # Limit per source: max 1 item from any single source for better diversity
         current_count = source_count.get(source, 0)
-        if current_count < 3:
+        if current_count < 1:
             selected.append(item)
             source_count[source] = current_count + 1
     
@@ -213,64 +218,31 @@ def summarize_with_openai(selected_items):
     user_payload = {
         "date": DATE,
         "instructions": dedent("""
-            Write EXACTLY 350-400 words total using proper Markdown headings for sections:
-            
-            ## Market Intelligence
-            Write 1-2 sentences summarizing the key trend or development theme, then list 2-3 specific news items as bullet points with source attribution.
-            
-            Format:
-            Brief analytical summary explaining the market trend and its significance.
-            
-            • Specific headline or development with key details - Source Name
-            • Another headline with important context - Source Name
-            • Third item if relevant - Source Name
-            
-            ## Industry Impact
-            Write 1-2 sentences analyzing how these developments affect the trade finance ecosystem, then list 2-3 specific impacts as bullet points.
-            
-            Format:
-            Summary of how trends are reshaping the industry and competitive dynamics.
-            
-            • Specific impact on market players or business models - Source Name  
-            • Regulatory or operational change affecting the sector - Source Name
-            • Technology adoption or partnership trend - Source Name
-            
-            ## Customer Opportunities
-            Write 1-2 sentences highlighting how trends create opportunities, then list 2-3 specific opportunities as bullet points.
-            
-            Format:
-            Summary of emerging opportunities for trade finance companies and their clients.
-            
-            • Specific opportunity or service enhancement - Source Name
-            • Cost reduction or efficiency gain - Source Name  
-            • New market or customer segment opening - Source Name
-            
-            ## Competitive Landscape
-            Brief summary sentence, then 3 bullet points with specific competitor moves, funding, or strategic initiatives.
-            
-            • Company funding round or partnership announcement - Source Name
-            • Product launch or strategic initiative - Source Name
-            • Market positioning or expansion move - Source Name
-            
-            ## Market Outlook
-            1-2 forward-looking insights based on the developments above. Focus on market direction and strategic recommendations.
+            Output only in this exact Slack format:
 
-            CRITICAL FORMATTING RULES:
-            - DO NOT include a title or header - the title is already provided
-            - Use proper Markdown headings with ## for each section (NO EMOJIS in headings)
-            - Start directly with the first section content
-            - Use bullet format: • [headline/detail] - [Source Name]([URL])
-            - PRIORITIZE SOURCE DIVERSITY: Avoid using the same source more than twice across all sections
-            - If multiple sources cover the same story, reference the non-paywalled source
-            - ALWAYS include the source URL in parentheses after the source name for credibility
-            - Write for MARKETING AUDIENCE: customers, prospects, industry stakeholders, business decision-makers
-            - PROFESSIONAL TONE: Demonstrate thought leadership and market expertise
-            - Focus on SCANNABLE FORMAT: summary + bullets for easy reading
-            - Use trade finance terminology appropriately (letters of credit, documentary collections, trade credit, etc.)
-            - Make content valuable for quick scanning and decision-making
-            - Position developments in context of global trade finance ecosystem
-            - No confidential info. No personal data.
-            - CRITICAL: Keep total word count between 350-400 words. Be concise and focused.
+            *{Headline insight/trend}* – {one-line interpretation}
+
+            {Optional contextual expansion sentence, may include *bold* emphasis for key forces or dynamics. Keep to max 2 sentences.}
+
+            • {Entity/Company/Deal} {action/outcome} {amount/metric} – <{Source URL}|{Source Name}>  
+            • {Entity/Company/Deal} {action/outcome} {amount/metric} – <{Source URL}|{Source Name}>  
+            • {Entity/Company/Deal} {action/outcome} {amount/metric} – <{Source URL}|{Source Name}>
+
+            Rules:
+            - Exactly one bold headline line, followed by one short interpretation.
+            - Optional context line allowed (max 2 sentences).
+            - Use *bold* only for the headline and optional emphasis in the context line.
+            - Provide exactly 3-5 bullet points for optimal scanning.
+            - Each bullet must start with "• " and end with "– <URL|Source Name>".
+            - Do not display raw URLs — they must be hidden behind the source name.
+            - No extra headings, intro, or outro text.
+            - No emojis or commentary outside the structure.
+            - Focus on trade finance, fintech, and related industry developments.
+            - CRITICAL: Use different sources for each bullet point - no source should appear twice.
+            - Include specific numbers/amounts when available (funding, deals, percentages).
+            - Write for a marketing audience: professional, business-focused tone.
+            - Keep total content under 200 words for quick scanning.
+            - Start each bullet with concrete entity/company name when possible.
         """).strip(),
         "items": selected_items
     }
@@ -313,42 +285,49 @@ def summarize_with_openai(selected_items):
     return content.strip()
 
 def enforce_quality(md_text: str):
-    # Check for required sections and source attributions
-    # For now, let's be very permissive and just require the sections
+    # Check for the new simple format: headline + optional context + bullets with Slack links
     
-    print(f"[DEBUG] Checking content for source attributions...")
+    print(f"[DEBUG] Checking content for new simple format...")
     print(f"[DEBUG] Content preview (first 1000 chars):")
     print(f"{md_text[:1000]}...")
     print(f"[DEBUG] Full content length: {len(md_text)} characters")
     
-    # Count all possible URL patterns
-    all_urls = re.findall(r"https?://[^\s)]+", md_text)
-    parenthetical_urls = re.findall(r"\(https?://[^)]+\)", md_text)
+    # Check for required elements in the new format
+    headline_pattern = re.findall(r"^\*[^*]+\*\s*–", md_text, re.MULTILINE)
     bullet_lines = re.findall(r"^•.*$", md_text, re.MULTILINE)
+    slack_links = re.findall(r"<https?://[^|>]+\|[^>]+>", md_text)
     
     print(f"[DEBUG] Found patterns:")
-    print(f"[DEBUG] - All URLs: {all_urls}")
-    print(f"[DEBUG] - Parenthetical URLs: {parenthetical_urls}")
+    print(f"[DEBUG] - Headlines with * and –: {headline_pattern}")
     print(f"[DEBUG] - Bullet lines: {bullet_lines}")
+    print(f"[DEBUG] - Slack-formatted links: {slack_links}")
     
-    # For testing, just require sections and at least some bullets - skip URL requirement for now
-    total_bullets = len(bullet_lines)
+    # Validate the new format
+    if len(headline_pattern) < 1:
+        die(f"Draft missing required headline format '*text* – interpretation'. Found {len(headline_pattern)} headlines.")
     
-    print(f"[DEBUG] Total bullet points found: {total_bullets}")
+    if len(bullet_lines) < 3 or len(bullet_lines) > 5:
+        die(f"Draft contains wrong number of bullet points ({len(bullet_lines)}). Require exactly 3-5 bullet points.")
     
-    # Temporary: Just require bullet points, not URLs
-    if total_bullets < 3:
-        die(f"Draft contains too few bullet points ({total_bullets}). Require at least 3 bullet points for proper formatting.")
+    if len(slack_links) < 3:
+        die(f"Draft contains too few Slack-formatted links ({len(slack_links)}). Require at least 3 links in format <URL|Source>.")
     
-    for h in ("Market Intelligence", "Industry Impact", "Customer Opportunities", "Competitive Landscape", "Market Outlook"):
-        if h.lower() not in md_text.lower():
-            die(f"Draft missing required section heading: '{h}'.")
+    # Check for source diversity - no source should appear twice
+    sources_in_bullets = []
+    for bullet in bullet_lines:
+        source_match = re.search(r"<[^|>]+\|([^>]+)>", bullet)
+        if source_match:
+            sources_in_bullets.append(source_match.group(1))
+    
+    duplicate_sources = [s for s in sources_in_bullets if sources_in_bullets.count(s) > 1]
+    if duplicate_sources:
+        die(f"Draft contains duplicate sources: {duplicate_sources}. Each bullet must use a different source.")
     
     # Log information
     words = re.findall(r"\b\w+\b", md_text)
     print(f"[INFO] Newsletter word count: {len(words)} words")
-    print(f"[INFO] Found {total_bullets} bullet points and {len(all_urls)} URLs")
-    print(f"[INFO] Quality check passed - focusing on format validation for now")
+    print(f"[INFO] Found {len(headline_pattern)} headlines, {len(bullet_lines)} bullets, {len(slack_links)} Slack links")
+    print(f"[INFO] Quality check passed - new simple format validated")
 
 # ---------- Slack formatting ----------
 LINK_MD = re.compile(r"\[([^\]]+)\]\((https?://[^)]+)\)")
@@ -463,17 +442,15 @@ def write_outputs(md_body: str):
         # Add visual separators around the message
         custom_message_section = f"---\n\n{CUSTOM_MESSAGE.strip()}\n\n---\n\n"
     
-    # Add emojis to headings in the body content
-    md_body_with_emojis = add_emojis_to_markdown(md_body)
-    
-    md_full = header + custom_message_section + md_body_with_emojis + "\n\n_— Auto-generated newsletter for Product Marketing review_\n"
+    # Use the content as-is (no emojis needed for new simple format)
+    md_full = header + custom_message_section + md_body + "\n\n_— Auto-generated newsletter for Product Marketing review_\n"
     
     # Quality check on full assembled text
     print("[i] Enforcing quality gates on assembled newsletter…")
     enforce_quality(md_full)
     
-    # Slack-friendly text (emojis already applied via convert_md_to_slack)
-    slack_text = convert_md_to_slack(md_full)
+    # AI already generates Slack-ready format, no conversion needed
+    slack_text = md_full
     with OUT_SLACK.open("w", encoding="utf-8") as f:
         f.write(slack_text)
     print(f"[OK] Slack newsletter written to {OUT_SLACK}")
