@@ -102,7 +102,7 @@ def rank_items(items, limit=12):
         # Core trade finance terms (highest priority)
         "trade finance", "trade-finance", "letter of credit", "lc", "documentary credit", "bill of lading",
         "export finance", "export financing", "import finance", "export lc", "export letter of credit",
-        "bank guarantee", "digital guarantee", "trade credit", "guarantees", "trade insurance",
+        "bank guarantee", "digital guarantee", "trade credit", "guarantees", "trade insurance", "mitigram", 
         
         # International trade activities
         "international trade", "global trade", "export", "exporters", "trade flows", "cross-border trade",

@@ -46,7 +46,7 @@ flowchart LR
 1. **Feed Fetching** - Pulls latest content from trade finance and fintech sources
 2. **Content Ranking** - Scores items based on trade finance relevance and market impact
 3. **AI Summarization** - OpenAI GPT-5-mini creates newsletter draft for marketing audience
-4. **Quality Gates** - Validates source links and required sections
+4. **Quality Gates** - Validates format compliance and source diversity
 5. **Direct Publishing** - Posts formatted newsletter directly to Slack channel
 6. **Human Review** - Product Marketing team reviews and distributes as needed
 
@@ -105,12 +105,25 @@ Current sources focus on trade finance and fintech:
 *Product Marketing team will provide additional sources as needed.*
 
 #### Newsletter Template
-The AI generates structured content with these sections:
-1. **Market Intelligence** - Key trade finance and fintech developments
-2. **Industry Impact** - Strategic implications for the trade finance ecosystem  
-3. **Customer Opportunities** - How trends create opportunities for businesses
-4. **Competitive Landscape** - Brief updates on competitor moves and market positioning
-5. **Market Outlook** - Forward-looking insights and strategic recommendations
+The AI generates a clean, scannable format optimized for quick consumption:
+
+**Structure:**
+```
+*Headline insight/trend* – One-line interpretation
+
+Optional contextual expansion (max 2 sentences with key emphasis).
+
+• Entity/Company action/outcome with metrics – <URL|Source Name>
+• Entity/Company action/outcome with metrics – <URL|Source Name>  
+• Entity/Company action/outcome with metrics – <URL|Source Name>
+```
+
+**Key Features:**
+- **Single focused theme** with 3-5 specific news items
+- **Slack-ready format** with hidden URL links  
+- **Source diversity** - each bullet uses a different source
+- **Concrete metrics** - funding amounts, percentages, deal sizes
+- **Under 200 words** for rapid scanning
 
 ## 🔧 Manual Execution
 
@@ -132,20 +145,22 @@ python generate.py
 #### 📰 Generate Newsletter Manually
 1. Go to **Actions → Generate Trade Finance Newsletter → Run workflow**
 2. Click **"Run workflow"** to generate and post immediately
-3. Newsletter will be generated and posted directly to configured Slack channel
+3. Newsletter will be generated and posted directly to Slack channel
 
 #### ⏰ Scheduled Newsletter
 - Runs automatically every other Tuesday at 9:00 AM CET
 - No manual intervention required
-- Posts directly to configured Slack channel
+- Posts directly to Slack channel
 
 ## 📊 Quality Controls
 
 ### Automated Validation
-- **Source Links**: Validates working URLs for credibility
-- **Required Sections**: Ensures all newsletter sections are present
+- **Format Compliance**: Ensures proper headline and bullet structure
+- **Source Diversity**: Validates each bullet uses a different source
+- **Slack Link Format**: Confirms URLs are properly formatted as `<URL|Source>`
 - **Content Scoring**: Prioritizes trade finance and fintech relevant content
-- **Length Control**: Maintains 350-400 word target for readability
+- **Length Control**: Maintains under 200 words for quick scanning
+- **Bullet Count**: Ensures 3-5 bullet points for optimal readability
 
 ### Human Review Process
 - Newsletter posts directly to configured Slack channel
@@ -157,13 +172,17 @@ python generate.py
 
 ### ✅ Implemented
 - **Bi-weekly Scheduling** - Automated generation every other Tuesday
-- **Manual Generation** - Urgent newsletter capability with timestamp
-- **Configurable Slack Publishing** - Posts to configurable channel via GitHub variable
+- **Manual Generation** - On-demand newsletter capability 
+- **Configurable Slack Publishing** - Posts directly to specified Slack channel
 - **Trade Finance Focus** - Curated sources specific to trade finance and fintech
 - **Marketing Audience** - Content tailored for customers, prospects, and stakeholders
+- **Ultra-Scannable Format** - Single theme with 3-5 focused bullet points
+- **Perfect Source Diversity** - Each bullet uses a different source (no duplicates)
 - **Simplified Workflow** - No PR reviews or Confluence - straight to Slack
 - **Smart Content Ranking** - Prioritizes trade finance relevance and market impact
-- **Quality Validation** - Ensures working links and complete sections
+- **Slack-Ready Output** - Pre-formatted with hidden URL links
+- **Concrete Metrics** - Emphasizes funding amounts, deal sizes, percentages
+- **Quality Validation** - Ensures format compliance and source diversity
 - **Robust Error Handling** - Timeout protection and retry logic for API calls
 
 ### 🔮 Future Enhancements  
