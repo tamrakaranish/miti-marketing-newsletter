@@ -312,18 +312,28 @@ def summarize_with_openai(selected_items):
     return content.strip()
 
 def enforce_quality(md_text: str):
-    # Check for required links and sections, but allow flexible word count
+    # Check for required sections and source attributions in new format
+    # New format uses "• [content] - [Source Name]" instead of URLs
+    
+    # Count bullet points with source attribution (our new format)
+    source_attributions = re.findall(r"•[^-]+-\s*\w+", md_text)
+    
+    # Also check for any remaining URL links (backward compatibility)
     links = re.findall(r"https?://\S+", md_text)
-    if len(links) < REQUIRED_MIN_LINKS:
-        die(f"Draft contains too few links ({len(links)}). Require at least {REQUIRED_MIN_LINKS} source URLs.")
+    
+    total_sources = len(source_attributions) + len(links)
+    
+    if total_sources < REQUIRED_MIN_LINKS:
+        die(f"Draft contains too few source attributions ({total_sources}). Require at least {REQUIRED_MIN_LINKS} sources. Found {len(source_attributions)} bullet attributions and {len(links)} URL links.")
     
     for h in ("Market Intelligence", "Industry Impact", "Customer Opportunities", "Competitive Landscape", "Market Outlook"):
         if h.lower() not in md_text.lower():
             die(f"Draft missing required section heading: '{h}'.")
     
-    # Log word count for visibility, but don't enforce strict limits
+    # Log word count and source information for visibility
     words = re.findall(r"\b\w+\b", md_text)
     print(f"[INFO] Newsletter word count: {len(words)} words")
+    print(f"[INFO] Source attributions found: {len(source_attributions)} bullets + {len(links)} URLs = {total_sources} total")
 
 # ---------- Slack formatting ----------
 LINK_MD = re.compile(r"\[([^\]]+)\]\((https?://[^)]+)\)")
