@@ -31,16 +31,16 @@ jobs:
         # Week 2, 4, 6, 8, 10, etc. of the year
         if [ $((WEEK_NUM % 2)) -eq 0 ]; then
           echo "should_run=true" >> $GITHUB_OUTPUT
-          echo "✅ This is a bi-weekly newsletter week (week $WEEK_NUM) - RUNNING"
+          echo "This is a bi-weekly newsletter week (week $WEEK_NUM) - RUNNING"
         else
           echo "should_run=false" >> $GITHUB_OUTPUT
-          echo "⏭️ Skipping this week (week $WEEK_NUM) - not a bi-weekly newsletter week"
+          echo "Skipping this week (week $WEEK_NUM) - not a bi-weekly newsletter week"
         fi
         
         # Always run if manually triggered
         if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
           echo "should_run=true" >> $GITHUB_OUTPUT
-          echo "🚀 Manual trigger - running newsletter generation"
+          echo "Manual trigger - running newsletter generation"
         fi
       
     - name: Set up Python
