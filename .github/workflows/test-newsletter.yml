@@ -1,0 +1,126 @@
+name: Test Trade Finance Newsletter
+
+on:
+  workflow_dispatch:
+    inputs:
+      test_message:
+        description: 'Optional test message to include in newsletter'
+        required: false
+        default: ''
+        type: string
+
+jobs:
+  test-newsletter:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+        
+    - name: Install dependencies
+      run: |
+        pip install -r requirements.txt
+        
+    - name: Generate test newsletter
+      env:
+        OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        TEST_MESSAGE: ${{ github.event.inputs.test_message }}
+      run: |
+        cd scripts
+        # Set test mode environment variable if test message provided
+        if [ -n "$TEST_MESSAGE" ]; then
+          export CUSTOM_MESSAGE="**TEST NEWSLETTER** - $TEST_MESSAGE"
+          echo "Running in TEST mode with message: $TEST_MESSAGE"
+        else
+          export CUSTOM_MESSAGE="**TEST NEWSLETTER** - Testing new format and source diversity"
+          echo "Running in TEST mode with default test message"
+        fi
+        python generate.py
+        
+    - name: Post to Test Slack Channel
+      env:
+        SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+        SLACK_CHANNEL: ${{ vars.TEST_SLACK_CHANNEL }}
+      run: |
+        # Check if TEST_SLACK_CHANNEL is set
+        if [ -z "$SLACK_CHANNEL" ]; then
+          echo "ERROR: TEST_SLACK_CHANNEL GitHub variable is not set!"
+          echo "Please set the TEST_SLACK_CHANNEL variable in Settings → Secrets and Variables → Actions → Variables"
+          echo "Example value: #anish-ai-test"
+          echo ""
+          echo "Alternatively, you can use the production channel by setting TEST_SLACK_CHANNEL to the same value as SLACK_CHANNEL"
+          exit 1
+        fi
+        
+        echo "TEST: Posting newsletter to Slack channel: $SLACK_CHANNEL"
+        
+        # Create newsletter directory if it doesn't exist
+        mkdir -p newsletter
+        
+        # Find the most recent newsletter file with safety check
+        NEWSLETTER_FILE=$(find newsletter -name "*_slack.txt" -type f | sort -t/ -k2 | tail -n1)
+        
+        if [ -z "$NEWSLETTER_FILE" ]; then
+          echo "ERROR: No newsletter file found in newsletter/ directory!"
+          echo "Expected format: newsletter/YYYY-MM-DD_slack.txt"
+          exit 1
+        fi
+        
+        if [ -f "$NEWSLETTER_FILE" ]; then
+          echo "Posting test newsletter from: $NEWSLETTER_FILE"
+          
+          # Read the newsletter content
+          NEWSLETTER_CONTENT=$(cat "$NEWSLETTER_FILE")
+          
+          # Post to Slack using curl
+          RESPONSE=$(curl -s -X POST https://slack.com/api/chat.postMessage \
+            -H "Authorization: Bearer $SLACK_BOT_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d "{
+              \"channel\": \"$SLACK_CHANNEL\",
+              \"text\": $(echo "$NEWSLETTER_CONTENT" | jq -Rs .),
+              \"unfurl_links\": false,
+              \"unfurl_media\": false
+            }")
+          
+          # Check if the post was successful
+          if echo "$RESPONSE" | jq -r .ok | grep -q "true"; then
+            echo "SUCCESS: Test newsletter successfully posted to $SLACK_CHANNEL"
+            MESSAGE_TS=$(echo "$RESPONSE" | jq -r .ts)
+            echo "Message timestamp: $MESSAGE_TS"
+          else
+            echo "ERROR: Failed to post to Slack. Response:"
+            echo "$RESPONSE"
+            exit 1
+          fi
+        else
+          echo "ERROR: No newsletter file found!"
+          exit 1
+        fi
+        
+    - name: Test Summary
+      if: always()
+      run: |
+        echo "===== TEST WORKFLOW SUMMARY ====="
+        echo "Test Date: $(date)"
+        echo "Newsletter File: $(ls -t newsletter/*_slack.txt 2>/dev/null | head -n1 || echo 'None found')"
+        echo "Target Channel: ${{ vars.TEST_SLACK_CHANNEL }}"
+        echo "Purpose: Testing new scannable format and source diversity"
+        echo ""
+        echo "Expected Improvements:"
+        echo "   - Summary + bullet format for easier scanning"
+        echo "   - Better source diversity (max 3 items per source)"
+        echo "   - Reduced reliance on paywalled content"
+        echo "   - Clear source attribution in bullets"
+        echo ""
+        echo "Manual Review Checklist:"
+        echo "   - Content is scannable (summary + bullets)"
+        echo "   - Sources are diverse (not dominated by GTR/TFG)"
+        echo "   - Headlines are clear and informative"
+        echo "   - Trade finance focus is maintained"
+        echo "   - Professional tone for marketing audience"

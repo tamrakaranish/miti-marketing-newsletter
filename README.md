@@ -76,7 +76,8 @@ Add these in **Settings → Secrets and Variables → Actions → Secrets**:
 
 #### Required Variables
 Add these in **Settings → Secrets and Variables → Actions → Variables**:
-- `SLACK_CHANNEL` - Target Slack channel (e.g., `#anish-ai-new`, `#product-marketing-ai`)
+- `SLACK_CHANNEL` - Target Slack channel for production newsletters (e.g., `#anish-ai-new`, `#product-marketing-ai`)
+- `TEST_SLACK_CHANNEL` - Target Slack channel for test newsletters (e.g., `#anish-ai-test`, `#newsletter-testing`)
 
 #### Repository Permissions
 Ensure GitHub Actions has permission to:
@@ -105,12 +106,14 @@ Current sources focus on trade finance and fintech:
 *Product Marketing team will provide additional sources as needed.*
 
 #### Newsletter Template
-The AI generates structured content with these sections:
-1. **Market Intelligence** - Key trade finance and fintech developments
-2. **Industry Impact** - Strategic implications for the trade finance ecosystem  
-3. **Customer Opportunities** - How trends create opportunities for businesses
-4. **Competitive Landscape** - Brief updates on competitor moves and market positioning
+The AI generates structured, scannable content with these sections:
+1. **Market Intelligence** - Brief trend summary + 2-3 news headlines with source attribution
+2. **Industry Impact** - Impact analysis + 2-3 specific effects on the trade finance ecosystem
+3. **Customer Opportunities** - Opportunity summary + 2-3 specific business opportunities
+4. **Competitive Landscape** - 3 bullet points on funding, partnerships, and strategic moves
 5. **Market Outlook** - Forward-looking insights and strategic recommendations
+
+**Format**: Each section uses summary + bullet points for easy scanning, with diverse source attribution to avoid paywall concentration.
 
 ## 🔧 Manual Execution
 
@@ -129,15 +132,21 @@ python generate.py
 
 ### GitHub Actions Manual Workflow
 
-#### 📰 Generate Newsletter Manually
+#### 🧪 Test Newsletter (Recommended for Testing)
+1. Go to **Actions → Test Trade Finance Newsletter → Run workflow**
+2. Optionally add a test message (e.g., "Testing new scannable format")
+3. Click **"Run workflow"** to generate and post to test channel
+4. Review in `TEST_SLACK_CHANNEL` before deploying to production
+
+#### 📰 Generate Production Newsletter Manually
 1. Go to **Actions → Generate Trade Finance Newsletter → Run workflow**
 2. Click **"Run workflow"** to generate and post immediately
-3. Newsletter will be generated and posted directly to configured Slack channel
+3. Newsletter will be generated and posted directly to production Slack channel
 
 #### ⏰ Scheduled Newsletter
 - Runs automatically every other Tuesday at 9:00 AM CET
 - No manual intervention required
-- Posts directly to configured Slack channel
+- Posts directly to production Slack channel
 
 ## 📊 Quality Controls
 
@@ -158,13 +167,22 @@ python generate.py
 ### ✅ Implemented
 - **Bi-weekly Scheduling** - Automated generation every other Tuesday
 - **Manual Generation** - Urgent newsletter capability with timestamp
-- **Configurable Slack Publishing** - Posts to configurable channel via GitHub variable
+- **Test Track** - Separate test workflow for validating changes before production
+- **Configurable Slack Publishing** - Posts to configurable channels (production + test)
 - **Trade Finance Focus** - Curated sources specific to trade finance and fintech
 - **Marketing Audience** - Content tailored for customers, prospects, and stakeholders
+- **Scannable Format** - Summary + bullet points for easy reading and mobile-friendly display
+- **Source Diversity** - Maximum 3 items per source to avoid paywall concentration
 - **Simplified Workflow** - No PR reviews or Confluence - straight to Slack
 - **Smart Content Ranking** - Prioritizes trade finance relevance and market impact
 - **Quality Validation** - Ensures working links and complete sections
 - **Robust Error Handling** - Timeout protection and retry logic for API calls
+
+### 🧪 Testing Features
+- **Test Newsletter Workflow** - Manual-only testing with separate Slack channel
+- **Custom Test Messages** - Add context to test runs for easier identification
+- **Source Attribution** - Clear source labeling in bullet format for transparency
+- **Format Validation** - Automated checks for summary + bullet structure
 
 ### 🔮 Future Enhancements  
 - **Additional Sources** - More trade finance feeds as provided by Product Marketing
@@ -183,11 +201,12 @@ python generate.py
 - Check GitHub Actions logs for specific errors
 
 **Slack Posting Issues**
-- Verify `SLACK_CHANNEL` GitHub variable is set with the correct channel name
-- Verify Slack bot is added to the target channel specified in `SLACK_CHANNEL` variable
+- Verify `SLACK_CHANNEL` and `TEST_SLACK_CHANNEL` GitHub variables are set with correct channel names
+- Verify Slack bot is added to both production and test channels
 - Check `SLACK_BOT_TOKEN` secret is configured correctly
-- Ensure bot has permission to post messages in the channel
+- Ensure bot has permission to post messages in both channels
 - Review workflow logs for Slack API errors
+- Test with the Test Newsletter workflow first before using production workflow
 
 **Bi-weekly Schedule Issues**
 - Check if week number logic needs adjustment for your desired start date
