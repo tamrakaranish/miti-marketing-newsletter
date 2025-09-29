@@ -259,9 +259,10 @@ def summarize_with_openai(selected_items):
             - DO NOT include a title or header - the title is already provided
             - Use proper Markdown headings with ## for each section (NO EMOJIS in headings)
             - Start directly with the first section content
-            - Use bullet format: • [headline/detail] - [Source Name] (not [Source](URL))
+            - Use bullet format: • [headline/detail] - [Source Name]([URL])
             - PRIORITIZE SOURCE DIVERSITY: Avoid using the same source more than twice across all sections
             - If multiple sources cover the same story, reference the non-paywalled source
+            - ALWAYS include the source URL in parentheses after the source name for credibility
             - Write for MARKETING AUDIENCE: customers, prospects, industry stakeholders, business decision-makers
             - PROFESSIONAL TONE: Demonstrate thought leadership and market expertise
             - Focus on SCANNABLE FORMAT: summary + bullets for easy reading
@@ -318,27 +319,31 @@ def enforce_quality(md_text: str):
     print(f"[DEBUG] Checking content for source attributions...")
     print(f"[DEBUG] Content preview (first 500 chars): {md_text[:500]}...")
     
-    # Count bullet points with source attribution (more flexible pattern)
-    # Matches: "• anything - Word" or "• anything - Multiple Words"
-    source_attributions = re.findall(r"•.*?-\s*[A-Za-z][A-Za-z\s]*[A-Za-z]", md_text)
+    # Count bullet points with source attribution in new format: • content - Source Name(URL)
+    source_attributions = re.findall(r"•.*?-\s*[A-Za-z][^(]*\(https?://[^)]+\)", md_text)
     
-    # Also check for any remaining URL links (backward compatibility)
-    links = re.findall(r"https?://\S+", md_text)
+    # Also check for any remaining standalone URL links (backward compatibility)
+    standalone_links = re.findall(r"https?://\S+", md_text)
+    
+    # Count URLs in the new format (should be most of them)
+    embedded_urls = re.findall(r"\(https?://[^)]+\)", md_text)
     
     # Also count lines with dashes (alternative format the AI might use)
     dash_sources = re.findall(r"[-–—]\s*[A-Z][A-Za-z\s]+$", md_text, re.MULTILINE)
     
-    total_sources = len(source_attributions) + len(links) + len(dash_sources)
+    # Use embedded URLs as the primary count since that's our new format
+    total_sources = len(embedded_urls)
     
     print(f"[DEBUG] Found patterns:")
-    print(f"[DEBUG] - Bullet attributions: {source_attributions}")
-    print(f"[DEBUG] - URL links: {links}")
+    print(f"[DEBUG] - Bullet attributions with URLs: {source_attributions}")
+    print(f"[DEBUG] - Standalone URL links: {standalone_links}")
+    print(f"[DEBUG] - Embedded URLs: {embedded_urls}")
     print(f"[DEBUG] - Dash sources: {dash_sources}")
     
     # Be more lenient - require at least 2 sources instead of 3 for testing
     min_required = 2
     if total_sources < min_required:
-        die(f"Draft contains too few source attributions ({total_sources}). Require at least {min_required} sources. Found {len(source_attributions)} bullet attributions, {len(links)} URL links, and {len(dash_sources)} dash sources.")
+        die(f"Draft contains too few source attributions ({total_sources}). Require at least {min_required} sources. Found {len(embedded_urls)} embedded URLs in bullet format.")
     
     for h in ("Market Intelligence", "Industry Impact", "Customer Opportunities", "Competitive Landscape", "Market Outlook"):
         if h.lower() not in md_text.lower():
@@ -347,7 +352,7 @@ def enforce_quality(md_text: str):
     # Log word count and source information for visibility
     words = re.findall(r"\b\w+\b", md_text)
     print(f"[INFO] Newsletter word count: {len(words)} words")
-    print(f"[INFO] Source attributions found: {len(source_attributions)} bullets + {len(links)} URLs + {len(dash_sources)} dashes = {total_sources} total")
+    print(f"[INFO] Source attributions found: {len(embedded_urls)} embedded URLs = {total_sources} total")
 
 # ---------- Slack formatting ----------
 LINK_MD = re.compile(r"\[([^\]]+)\]\((https?://[^)]+)\)")
