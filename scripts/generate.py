@@ -43,7 +43,8 @@ MAX_WORDS = 400
 REQUIRED_MIN_LINKS = 3
 
 # Custom message section (can be edited for special announcements)
-CUSTOM_MESSAGE = ""
+# Can be overridden with CUSTOM_MESSAGE environment variable for testing
+CUSTOM_MESSAGE = os.environ.get("CUSTOM_MESSAGE", "")
 
 # ----------------------------
 # Helpers
